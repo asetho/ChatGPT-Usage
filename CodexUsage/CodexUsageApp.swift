@@ -89,8 +89,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Let AppKit style the title and template icon together on inactive menu bars.
         button.title = percentage
-        button.toolTip = "ChatGPT 5-hour usage: \(percentage) remaining. Double-click to open ChatGPT."
-        button.setAccessibilityLabel("ChatGPT 5-hour usage, \(percentage) remaining")
+        button.toolTip = "ChatGPT weekly usage: \(percentage) remaining. Double-click to open ChatGPT."
+        button.setAccessibilityLabel("ChatGPT weekly usage, \(percentage) remaining")
     }
 
     @objc private func handleStatusItemClick(_ sender: NSStatusBarButton) {

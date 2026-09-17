@@ -1,12 +1,14 @@
 <Window x:Class="ChatGPTUsage.Windows.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Width="330" Height="460" ResizeMode="NoResize" WindowStyle="None"
+        Width="330" SizeToContent="Height" ResizeMode="NoResize" WindowStyle="None"
         ShowInTaskbar="False" Topmost="True" Background="Transparent"
-        AllowsTransparency="True" Deactivated="Window_Deactivated">
-    <Border Background="#14171D" BorderBrush="#414650" BorderThickness="1" CornerRadius="14" Padding="18">
+        AllowsTransparency="True" Deactivated="Window_Deactivated"
+        Loaded="Window_Loaded" SizeChanged="Window_SizeChanged">
+    <Border x:Name="RootBorder" Background="#14171D" BorderBrush="#414650" BorderThickness="1" CornerRadius="14" Padding="18">
         <DockPanel LastChildFill="True">
-            <StackPanel DockPanel.Dock="Bottom" Margin="0,14,0,0">
+            <StackPanel x:Name="FooterPanel" DockPanel.Dock="Bottom" Margin="0,8,0,0"
+                        SizeChanged="LayoutPart_SizeChanged">
                 <Button Visibility="{Binding UpdateAvailableVisibility}" Click="OpenUpdate_Click"
                         Padding="0" Margin="0,0,0,12" HorizontalContentAlignment="Stretch"
                         Background="Transparent" BorderThickness="0" Foreground="#F0F1F4"
@@ -39,8 +41,8 @@
                 </Grid>
             </StackPanel>
 
-            <ScrollViewer VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
-                <StackPanel>
+            <ScrollViewer x:Name="ContentScrollViewer" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel x:Name="ContentStack" SizeChanged="LayoutPart_SizeChanged">
                     <Grid Margin="0,0,0,14">
                         <StackPanel Orientation="Horizontal">
                             <Viewbox Width="28" Height="28" Margin="0,0,10,0">
@@ -57,56 +59,107 @@
                             </Viewbox>
                             <TextBlock Text="Usage remaining" FontSize="21" FontWeight="SemiBold" Foreground="#F0F1F4" VerticalAlignment="Center" />
                         </StackPanel>
-                        <Button Content="×" Click="Close_Click" HorizontalAlignment="Right" FontSize="20" Padding="4,-3" Background="Transparent" BorderThickness="0" Foreground="#B4B8C0" />
+                        <Button Click="About_Click" ToolTip="About ChatGPT Usage" AutomationProperties.Name="About ChatGPT Usage"
+                                HorizontalAlignment="Right" Padding="5,1" Background="Transparent" BorderThickness="0" Foreground="#B4B8C0">
+                            <TextBlock Text="&#xE946;" FontFamily="Segoe MDL2 Assets" FontSize="16" />
+                        </Button>
                     </Grid>
 
-                    <Grid Margin="0,0,0,4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="76" />
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="5h" FontSize="17" Foreground="#F0F1F4" />
-                        <TextBlock Grid.Column="1" Text="{Binding FiveHourRemaining}" FontSize="17" Foreground="#B4B8C0" />
-                        <TextBlock Grid.Column="2" Text="{Binding FiveHourReset}" FontSize="17" Foreground="#B4B8C0" HorizontalAlignment="Right" />
-                    </Grid>
                     <Grid Margin="0,0,0,12">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="76" />
                         </Grid.ColumnDefinitions>
                         <TextBlock Text="Weekly" FontSize="17" Foreground="#F0F1F4" />
                         <TextBlock Grid.Column="1" Text="{Binding WeeklyRemaining}" FontSize="17" Foreground="#B4B8C0" />
-                        <TextBlock Grid.Column="2" Text="{Binding WeeklyReset}" FontSize="17" Foreground="#B4B8C0" HorizontalAlignment="Right" />
+                        <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding WeeklyReset}" Margin="0,3,0,0"
+                                   FontSize="13" Foreground="#858B96" />
                     </Grid>
 
                     <Button Click="OpenUsage_Click" Padding="0,5" HorizontalContentAlignment="Left" Background="Transparent" BorderThickness="0" Foreground="#F0F1F4">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="{Binding ResetTitle}" FontSize="16" />
-                            <TextBlock Text="↗" FontSize="16" Foreground="#B4B8C0" Margin="6,0,0,0" />
-                        </StackPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="{Binding ResetTitle}" FontSize="16" />
+                                <TextBlock Text="{Binding ResetExpiration}" Visibility="{Binding ResetExpirationVisibility}"
+                                           FontSize="12" Foreground="#858B96" Margin="0,2,0,0" />
+                            </StackPanel>
+                            <TextBlock Grid.Column="1" Text="↗" FontSize="16" Foreground="#B4B8C0" Margin="6,0,0,0" />
+                        </Grid>
                     </Button>
 
                     <Separator Background="#414650" Margin="0,12,0,8" />
-                    <Expander Header="Additional limits" Visibility="{Binding AdditionalLimitsVisibility}" Foreground="#F0F1F4" FontSize="16" Margin="0,0,0,8">
+                    <Expander Header="Additional limits" Visibility="{Binding AdditionalLimitsVisibility}" Foreground="#F0F1F4" FontSize="16" Margin="0,0,0,8"
+                              Expanded="Disclosure_Changed" Collapsed="Disclosure_Changed">
                         <ItemsControl ItemsSource="{Binding AdditionalLimits}" Margin="18,8,0,0">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <StackPanel Margin="0,0,0,8">
-                                        <TextBlock Text="{Binding Name}" Foreground="#B4B8C0" FontSize="13" />
-                                        <TextBlock Text="{Binding FiveHour}" Foreground="#E6E8EE" FontSize="13" />
-                                        <TextBlock Text="{Binding Weekly}" Foreground="#E6E8EE" FontSize="13" />
+                                    <StackPanel Margin="0,0,0,12">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{Binding Name}" Foreground="#B4B8C0" FontSize="13"
+                                                       FontWeight="SemiBold" VerticalAlignment="Center" />
+                                            <Button Click="OpenReserveGuide_Click" Visibility="{Binding GuideVisibility}"
+                                                    ToolTip="Read the Luna Reserve guide" AutomationProperties.Name="Read the Luna Reserve guide"
+                                                    Background="Transparent" BorderThickness="0" Foreground="#B4B8C0"
+                                                    Padding="4,2" Margin="2,0,0,0">
+                                                <Border Width="15" Height="15" BorderBrush="#B4B8C0" BorderThickness="1"
+                                                        CornerRadius="7.5" SnapsToDevicePixels="True">
+                                                    <TextBlock Text="?" FontFamily="Segoe UI" FontSize="10" FontWeight="SemiBold"
+                                                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                               Margin="0,-1,0,0" />
+                                                </Border>
+                                            </Button>
+                                        </StackPanel>
+
+                                        <Grid Visibility="{Binding FiveHourVisibility}" Margin="0,7,0,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="52" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="5h" Foreground="#E6E8EE" FontSize="14" />
+                                            <TextBlock Grid.Column="1" Text="{Binding FiveHourReset}"
+                                                       Foreground="#B4B8C0" FontSize="12" Margin="10,1,10,0"
+                                                       TextAlignment="Right" />
+                                            <TextBlock Grid.Column="2" Text="{Binding FiveHourRemaining}"
+                                                       Foreground="#F0F1F4" FontSize="14" FontWeight="SemiBold"
+                                                       TextAlignment="Right" />
+                                        </Grid>
+
+                                        <Grid Visibility="{Binding WeeklyVisibility}" Margin="0,5,0,0">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="52" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="Weekly" Foreground="#E6E8EE" FontSize="14" />
+                                            <TextBlock Grid.Column="1" Text="{Binding WeeklyRemaining}"
+                                                       Foreground="#F0F1F4" FontSize="14" FontWeight="SemiBold"
+                                                       TextAlignment="Right" />
+                                            <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding WeeklyReset}"
+                                                       Foreground="#858B96" FontSize="12" Margin="0,2,0,0" />
+                                        </Grid>
                                     </StackPanel>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
                     </Expander>
-                    <Expander Header="Token usage" Visibility="{Binding TokenUsageVisibility}" Foreground="#F0F1F4" FontSize="16">
+                    <Expander Header="Token usage" Visibility="{Binding TokenUsageVisibility}" Foreground="#F0F1F4" FontSize="16"
+                              Expanded="Disclosure_Changed" Collapsed="Disclosure_Changed">
                         <ItemsControl ItemsSource="{Binding TokenUsage}" Margin="18,8,0,0">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Grid Margin="0,0,0,6">
+                                    <Grid Margin="0,0,0,4">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="Auto" />
@@ -119,7 +172,23 @@
                         </ItemsControl>
                     </Expander>
 
-                    <TextBlock Text="{Binding ErrorMessage}" Foreground="#FFB86C" TextWrapping="Wrap" Margin="0,12,0,0" />
+                    <TextBlock Text="{Binding ErrorMessage}" Foreground="#FFB86C" TextWrapping="Wrap">
+                        <TextBlock.Style>
+                            <Style TargetType="{x:Type TextBlock}">
+                                <Setter Property="Margin" Value="0,12,0,0" />
+                                <Style.Triggers>
+                                    <Trigger Property="Text" Value="">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Setter Property="Margin" Value="0" />
+                                    </Trigger>
+                                    <Trigger Property="Text" Value="{x:Null}">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Setter Property="Margin" Value="0" />
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
                 </StackPanel>
             </ScrollViewer>
         </DockPanel>

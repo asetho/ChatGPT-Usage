@@ -1,0 +1,40 @@
+<Window x:Class="ChatGPTUsage.Windows.AboutWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:automation="clr-namespace:System.Windows.Automation;assembly=PresentationCore"
+        Title="About ChatGPT Usage" Width="380" SizeToContent="Height"
+        ResizeMode="NoResize" WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False" Topmost="True" Background="#14171D">
+    <Border BorderBrush="#414650" BorderThickness="1" Padding="24">
+        <StackPanel>
+            <Image Source="/ChatGPTUsage.Windows;component/Assets/ChatGPTUsage-small.png"
+                   Width="64" Height="64" Stretch="Uniform" HorizontalAlignment="Center"
+                   SnapsToDevicePixels="True" />
+            <TextBlock Text="ChatGPT Usage" FontSize="22" FontWeight="SemiBold" Foreground="#F0F1F4"
+                       HorizontalAlignment="Center" Margin="0,12,0,0" />
+            <TextBlock x:Name="VersionText" FontSize="13" Foreground="#B4B8C0" HorizontalAlignment="Center" Margin="0,3,0,0" />
+            <TextBlock Text="© 2026 asetho™" FontSize="12" Foreground="#858B96" HorizontalAlignment="Center" Margin="0,3,0,18" />
+
+            <Button Content="Check for Updates" Click="CheckForUpdates_Click" Padding="11,7"
+                    HorizontalAlignment="Center" Background="#202A38" Foreground="#F0F1F4" />
+
+            <TextBlock Text="{Binding UpdateCheckStatus}" FontSize="12" Foreground="#B4B8C0"
+                       TextAlignment="Center" Margin="0,12,0,0" />
+            <Button Content="View available update" Visibility="{Binding UpdateAvailableVisibility}"
+                    Click="OpenUpdate_Click" Padding="8,5" Margin="0,8,0,0" HorizontalAlignment="Center"
+                    Background="Transparent" BorderThickness="0" Foreground="#60A5FA" />
+
+            <Button Click="OpenGitHub_Click" Width="40" Height="40" Padding="8" Margin="0,10,0,0"
+                    HorizontalAlignment="Center" Background="Transparent" BorderThickness="0"
+                    Foreground="#F0F1F4" Cursor="Hand" ToolTip="Open ChatGPT Usage on GitHub"
+                    automation:AutomationProperties.Name="Open ChatGPT Usage on GitHub">
+                <Viewbox Width="24" Height="24">
+                    <Path Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                          Data="M12,0.5 C5.73,0.5 0.5,5.73 0.5,12 C0.5,17.1 3.79,21.4 8.34,22.94 C8.92,23.05 9.13,22.69 9.13,22.38 L9.13,20.21 C5.94,20.9 5.27,18.84 5.27,18.84 C4.75,17.51 3.99,17.16 3.99,17.16 C2.94,16.44 4.07,16.46 4.07,16.46 C5.23,16.54 5.84,17.65 5.84,17.65 C6.87,19.42 8.55,18.91 9.21,18.61 C9.31,17.86 9.61,17.35 9.94,17.06 C7.39,16.77 4.71,15.78 4.71,11.37 C4.71,10.11 5.16,9.08 5.9,8.28 C5.78,7.99 5.38,6.82 6.01,5.24 C6.01,5.24 6.98,4.93 9.19,6.42 C11.03,5.91 12.96,5.91 14.98,6.42 C17.18,4.93 18.15,5.24 18.15,5.24 C18.79,6.82 18.39,7.99 18.27,8.28 C19.01,9.09 19.46,10.11 19.46,11.37 C19.46,15.79 16.77,16.76 14.21,17.05 C14.62,17.41 14.99,18.11 14.99,19.19 L14.99,22.36 C14.99,22.67 15.2,23.04 15.79,22.92 C20.71,21.4 24,17.1 24,12 C24,5.73 18.77,0.5 12,0.5 Z" />
+                </Viewbox>
+            </Button>
+            <Button Content="Close" Click="Close_Click" Padding="12,6" Margin="0,18,0,0"
+                    HorizontalAlignment="Center" IsDefault="True" />
+        </StackPanel>
+    </Border>
+</Window>

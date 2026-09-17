@@ -2,7 +2,7 @@
 
 > **Unsigned community software:** these downloads are not publisher-signed, and the Mac app is not notarized by Apple. Your operating system may warn or block installation. This project provides no guarantee that a download is safe. Only proceed if you trust the source and have verified the file. Read [Unsigned installation and security warnings](UNSIGNED-INSTALL.txt) for the app-specific **Open Anyway** (Mac) and **More info → Run anyway** (Windows) steps. Do not disable system-wide security protections.
 
-A lightweight macOS menu-bar and Windows tray companion for viewing Codex usage. Both apps show the remaining percentage in the active five-hour window, weekly limits, reset times, available resets, extra model limits, token totals, refresh controls, and a direct link to the ChatGPT usage dashboard.
+A lightweight macOS menu-bar and Windows tray companion for viewing Codex usage. Both apps show the remaining weekly percentage and reset date, available reset credits and their expiration, extra model limits, token totals, refresh controls, and a direct link to the ChatGPT usage dashboard.
 
 On macOS, click the menu-bar item to open the usage menu or double-click it to open the ChatGPT desktop app. On Windows, the percentage stays visible in a floating widget near the clock; click the widget or tray icon to open the full usage popup.
 
@@ -41,6 +41,8 @@ The apps launch a local `codex app-server` process and reuse Codex's existing Ch
 | Windows | `ChatGPTUsage-Setup-<version>.exe` | x64-compatible Windows |
 
 Both platforms require a working Codex CLI signed in to ChatGPT under the same user account. The macOS app can also use the CLI bundled with the ChatGPT desktop app.
+
+**Plan compatibility:** the app does not restrict ChatGPT plan types; it displays the limits returned by the signed-in Codex CLI. Business, Enterprise, and Edu workspaces may use different seat allowances, workspace credits, spend controls, or reset windows, so their popup details can differ from Plus and Pro. This companion does not replace workspace billing or administration views.
 
 ### macOS
 

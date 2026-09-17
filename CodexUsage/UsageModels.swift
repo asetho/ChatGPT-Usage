@@ -8,6 +8,20 @@ struct RateLimitsResponse: Decodable, Equatable {
 
 struct RateLimitResetCreditsSummary: Decodable, Equatable {
     let availableCount: Int64
+    let credits: [RateLimitResetCredit]?
+
+    var nextExpiration: Int64? {
+        credits?
+            .filter { $0.status == "available" }
+            .compactMap(\.expiresAt)
+            .min()
+    }
+}
+
+struct RateLimitResetCredit: Decodable, Equatable {
+    let expiresAt: Int64?
+    let status: String
+    let title: String?
 }
 
 struct RateLimitSnapshot: Decodable, Equatable, Identifiable {
@@ -22,7 +36,15 @@ struct RateLimitSnapshot: Decodable, Equatable, Identifiable {
 
     var id: String { limitId ?? limitName ?? "default" }
 
+    var isLunaReserve: Bool {
+        [limitId, limitName]
+            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
+            .map { $0.replacingOccurrences(of: "_", with: "-") }
+            .contains("gpt-reserve")
+    }
+
     var displayName: String {
+        if isLunaReserve { return "Luna Reserve" }
         if let limitName, !limitName.isEmpty {
             return limitName
         }
@@ -32,16 +54,30 @@ struct RateLimitSnapshot: Decodable, Equatable, Identifiable {
         return limitId?.replacingOccurrences(of: "_", with: " ").capitalized ?? "Codex"
     }
 
+    func usingLimitIdIfMissing(_ fallback: String) -> RateLimitSnapshot {
+        guard limitId?.isEmpty != false else { return self }
+        return RateLimitSnapshot(
+            limitId: fallback,
+            limitName: limitName,
+            primary: primary,
+            secondary: secondary,
+            credits: credits,
+            individualLimit: individualLimit,
+            planType: planType,
+            rateLimitReachedType: rateLimitReachedType
+        )
+    }
+
     var fiveHourWindow: RateLimitWindow? {
         [primary, secondary]
             .compactMap { $0 }
-            .first(where: { $0.windowDurationMins == 300 }) ?? primary
+            .first(where: { $0.windowDurationMins == 300 })
     }
 
     var weeklyWindow: RateLimitWindow? {
         [primary, secondary]
             .compactMap { $0 }
-            .first(where: { $0.windowDurationMins == 10_080 }) ?? secondary
+            .first(where: { $0.windowDurationMins == 10_080 })
     }
 }
 
@@ -100,7 +136,7 @@ struct CodexUsageSnapshot: Equatable {
     var additionalRateLimits: [RateLimitSnapshot] {
         rateLimitsById
             .filter { $0.key != "codex" }
-            .map(\.value)
+            .map { $0.value.usingLimitIdIfMissing($0.key) }
             .sorted { $0.displayName.localizedCaseInsensitiveCompare($1.displayName) == .orderedAscending }
     }
 
@@ -132,6 +168,14 @@ enum UsageFormatters {
         return formatter
     }()
 
+    static let fullDateTime: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = .current
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter
+    }()
+
     static let compactNumber: NumberFormatter = {
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
@@ -147,6 +191,11 @@ enum UsageFormatters {
             return shortTime.string(from: date)
         }
         return shortDate.string(from: date)
+    }
+
+    static func fullResetLabel(_ timestamp: Int64?) -> String {
+        guard let timestamp else { return "—" }
+        return fullDateTime.string(from: Date(timeIntervalSince1970: TimeInterval(timestamp)))
     }
 
     static func tokenCount(_ value: Int64?) -> String {

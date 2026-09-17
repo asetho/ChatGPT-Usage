@@ -3,6 +3,7 @@ import SwiftUI
 
 struct UsageMenuView: View {
     @EnvironmentObject private var store: UsageStore
+    @State private var isShowingAbout = false
 
     private let usageDashboardURL = URL(string: "https://chatgpt.com/codex/settings/usage")!
 
@@ -59,6 +60,19 @@ struct UsageMenuView: View {
                 ProgressView()
                     .controlSize(.small)
             }
+
+            Button {
+                isShowingAbout = true
+            } label: {
+                Image(systemName: "info.circle")
+            }
+            .buttonStyle(.plain)
+            .help("About ChatGPT Usage")
+            .accessibilityLabel("About ChatGPT Usage")
+            .popover(isPresented: $isShowingAbout, arrowEdge: .top) {
+                AboutView()
+                    .environmentObject(store)
+            }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 13)
@@ -68,8 +82,11 @@ struct UsageMenuView: View {
     private func usageContent(_ snapshot: CodexUsageSnapshot) -> some View {
         VStack(spacing: 0) {
             VStack(spacing: 10) {
-                UsageWindowRow(title: "5h", window: snapshot.codexRateLimits.fiveHourWindow)
-                UsageWindowRow(title: "Weekly", window: snapshot.codexRateLimits.weeklyWindow)
+                UsageWindowRow(
+                    title: "Weekly",
+                    window: snapshot.codexRateLimits.weeklyWindow,
+                    showsFullResetDate: true
+                )
             }
             .padding(.horizontal, 16)
             .padding(.top, 14)
@@ -81,7 +98,14 @@ struct UsageMenuView: View {
 
             Button(action: openUsageDashboard) {
                 HStack(spacing: 6) {
-                    Text(manageUsageTitle(snapshot))
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(manageUsageTitle(snapshot))
+                        if let expiration = resetExpirationTitle(snapshot) {
+                            Text(expiration)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
                     Image(systemName: "arrow.up.forward.app")
                         .foregroundStyle(.secondary)
                     Spacer()
@@ -242,6 +266,11 @@ struct UsageMenuView: View {
         return "Manage resets & credits"
     }
 
+    private func resetExpirationTitle(_ snapshot: CodexUsageSnapshot) -> String? {
+        guard let expiration = snapshot.rateLimitResetCredits?.nextExpiration else { return nil }
+        return "Expires \(UsageFormatters.fullResetLabel(expiration))"
+    }
+
     private func openUsageDashboard() {
         NSWorkspace.shared.open(usageDashboardURL)
     }
@@ -310,28 +339,42 @@ private struct ActiveDarkGlassBackground: NSViewRepresentable {
 private struct UsageWindowRow: View {
     let title: String
     let window: RateLimitWindow?
+    var showsFullResetDate = false
+    var fontSize: CGFloat = 15
 
     var body: some View {
-        HStack(spacing: 12) {
-            Text(title)
-                .foregroundStyle(.primary)
+        VStack(alignment: .leading, spacing: 3) {
+            HStack(spacing: 12) {
+                Text(title)
+                    .foregroundStyle(.primary)
 
-            Spacer()
+                Spacer()
 
-            if let window {
-                Text("\(window.remainingPercent)%")
+                if let window {
+                    if !showsFullResetDate {
+                        Text(UsageFormatters.resetLabel(window.resetsAt))
+                            .monospacedDigit()
+                            .foregroundStyle(.secondary)
+                            .frame(minWidth: 70, alignment: .trailing)
+                    }
+                    Text("\(window.remainingPercent)%")
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
+                        .frame(minWidth: 44, alignment: .trailing)
+                } else {
+                    Text("—")
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            if showsFullResetDate, let resetsAt = window?.resetsAt {
+                Text("Resets \(UsageFormatters.fullResetLabel(resetsAt))")
+                    .font(.caption)
                     .monospacedDigit()
-                    .foregroundStyle(.secondary)
-                Text(UsageFormatters.resetLabel(window.resetsAt))
-                    .monospacedDigit()
-                    .foregroundStyle(.secondary)
-                    .frame(minWidth: 70, alignment: .trailing)
-            } else {
-                Text("—")
                     .foregroundStyle(.secondary)
             }
         }
-        .font(.system(size: 15))
+        .font(.system(size: fontSize))
     }
 }
 
@@ -340,12 +383,96 @@ private struct AdditionalLimitView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(limit.displayName)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            UsageWindowRow(title: "5h", window: limit.fiveHourWindow)
-            UsageWindowRow(title: "Weekly", window: limit.weeklyWindow)
+            HStack(spacing: 5) {
+                Text(limit.displayName)
+                if limit.isLunaReserve {
+                    Link(destination: URL(string: "https://help-lb.openai.com/en/articles/20001499-luna-reserve-in-codex-and-chatgpt-work")!) {
+                        Image(systemName: "questionmark.circle")
+                    }
+                    .help("Read the Luna Reserve guide")
+                    .accessibilityLabel("Read the Luna Reserve guide")
+                }
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            if let fiveHourWindow = limit.fiveHourWindow {
+                UsageWindowRow(title: "5h", window: fiveHourWindow, fontSize: 14)
+            }
+            if let weeklyWindow = limit.weeklyWindow {
+                UsageWindowRow(
+                    title: "Weekly",
+                    window: weeklyWindow,
+                    showsFullResetDate: true,
+                    fontSize: 14
+                )
+            }
         }
+    }
+}
+
+private struct AboutView: View {
+    @EnvironmentObject private var store: UsageStore
+    @Environment(\.dismiss) private var dismiss
+
+    private let repositoryURL = URL(string: "https://github.com/asetho/ChatGPT-Usage")!
+
+    private var version: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "Unknown"
+    }
+
+    var body: some View {
+        VStack(spacing: 14) {
+            Image(nsImage: NSApplication.shared.applicationIconImage)
+                .resizable()
+                .frame(width: 64, height: 64)
+
+            VStack(spacing: 3) {
+                Text("ChatGPT Usage")
+                    .font(.title2.weight(.semibold))
+                Text("Version \(version)")
+                    .foregroundStyle(.secondary)
+                Text("© 2026 asetho™")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Button {
+                store.checkForUpdatesManually()
+            } label: {
+                Label("Check for Updates", systemImage: "arrow.clockwise")
+            }
+            .disabled(store.isCheckingForUpdates)
+
+            if let status = store.updateCheckStatus {
+                Text(status)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            if let update = store.availableUpdate {
+                Link("View version \(update.version)", destination: update.releaseURL)
+                    .font(.caption)
+            }
+
+            Link(destination: repositoryURL) {
+                Image("GitHubMark")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 24, height: 24)
+                    .foregroundStyle(.primary)
+                    .padding(8)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help("Open ChatGPT Usage on GitHub")
+            .accessibilityLabel("Open ChatGPT Usage on GitHub")
+
+            Button("Done") { dismiss() }
+                .keyboardShortcut(.defaultAction)
+        }
+        .padding(24)
+        .frame(width: 360)
+        .preferredColorScheme(.dark)
     }
 }
 

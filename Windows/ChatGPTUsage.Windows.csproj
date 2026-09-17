@@ -13,5 +13,6 @@
     <Content Include="Assets\ChatGPTUsage.ico">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Resource Include="Assets\ChatGPTUsage-small.png" />
   </ItemGroup>
 </Project>
