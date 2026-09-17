@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace ChatGPTUsage.Windows;
 
@@ -118,6 +119,10 @@ internal static class CodexUsageService
             {
                 limitsById[rateLimits.RateLimits.LimitId ?? "codex"] = rateLimits.RateLimits;
             }
+            foreach (var (limitId, limit) in limitsById)
+            {
+                limit.FallbackLimitId = limitId;
+            }
             return new UsageSnapshot(rateLimits.RateLimits, limitsById, rateLimits.RateLimitResetCredits, accountUsage);
         }
         catch (OperationCanceledException) when (timeout.IsCancellationRequested)
@@ -187,6 +192,18 @@ internal sealed class RateLimitsResponse
 internal sealed class RateLimitResetCreditsSummary
 {
     public long AvailableCount { get; init; }
+    public List<RateLimitResetCredit>? Credits { get; init; }
+    public long? NextExpiration => Credits?
+        .Where(credit => credit.Status == "available" && credit.ExpiresAt.HasValue)
+        .Select(credit => credit.ExpiresAt)
+        .Min();
+}
+
+internal sealed class RateLimitResetCredit
+{
+    public long? ExpiresAt { get; init; }
+    public string Status { get; init; } = "unknown";
+    public string? Title { get; init; }
 }
 
 internal sealed class RateLimitSnapshot
@@ -196,11 +213,19 @@ internal sealed class RateLimitSnapshot
     public RateLimitWindow? Primary { get; init; }
     public RateLimitWindow? Secondary { get; init; }
 
-    public string DisplayName => !string.IsNullOrWhiteSpace(LimitName)
+    [JsonIgnore]
+    public string? FallbackLimitId { get; set; }
+
+    private string? EffectiveLimitId => string.IsNullOrWhiteSpace(LimitId) ? FallbackLimitId : LimitId;
+    public bool IsLunaReserve => IsReserveName(EffectiveLimitId) || IsReserveName(LimitName);
+    public string DisplayName => IsLunaReserve ? "Luna Reserve" : !string.IsNullOrWhiteSpace(LimitName)
         ? LimitName
-        : LimitId is null or "codex" ? "Codex" : LimitId.Replace("_", " ");
-    public RateLimitWindow? FiveHourWindow => new[] { Primary, Secondary }.FirstOrDefault(window => window?.WindowDurationMins == 300) ?? Primary;
-    public RateLimitWindow? WeeklyWindow => new[] { Primary, Secondary }.FirstOrDefault(window => window?.WindowDurationMins == 10_080) ?? Secondary;
+        : EffectiveLimitId is null or "codex" ? "Codex" : EffectiveLimitId.Replace("_", " ");
+    public RateLimitWindow? FiveHourWindow => new[] { Primary, Secondary }.FirstOrDefault(window => window?.WindowDurationMins == 300);
+    public RateLimitWindow? WeeklyWindow => new[] { Primary, Secondary }.FirstOrDefault(window => window?.WindowDurationMins == 10_080);
+
+    private static bool IsReserveName(string? value) =>
+        string.Equals(value?.Trim().Replace('_', '-'), "gpt-reserve", StringComparison.OrdinalIgnoreCase);
 }
 
 internal sealed class RateLimitWindow

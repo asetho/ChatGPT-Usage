@@ -62,30 +62,83 @@ final class UsageModelsTests: XCTestCase {
         XCTAssertEqual(snapshot.weeklyWindow, weekly)
     }
 
+    func testDoesNotMislabelWeeklyOnlyWindowAsFiveHour() {
+        let weekly = RateLimitWindow(usedPercent: 77, windowDurationMins: 10_080, resetsAt: nil)
+        let snapshot = RateLimitSnapshot(
+            limitId: "codex",
+            limitName: nil,
+            primary: weekly,
+            secondary: nil,
+            credits: nil,
+            individualLimit: nil,
+            planType: "pro",
+            rateLimitReachedType: nil
+        )
+
+        XCTAssertNil(snapshot.fiveHourWindow)
+        XCTAssertEqual(snapshot.weeklyWindow, weekly)
+    }
+
+    func testLunaReserveDisplayNameUsesLimitNameOrDictionaryKey() {
+        let named = RateLimitSnapshot(
+            limitId: nil,
+            limitName: "gpt-reserve",
+            primary: nil,
+            secondary: nil,
+            credits: nil,
+            individualLimit: nil,
+            planType: nil,
+            rateLimitReachedType: nil
+        )
+        XCTAssertTrue(named.isLunaReserve)
+        XCTAssertEqual(named.displayName, "Luna Reserve")
+
+        let unnamed = RateLimitSnapshot(
+            limitId: nil,
+            limitName: nil,
+            primary: nil,
+            secondary: nil,
+            credits: nil,
+            individualLimit: nil,
+            planType: nil,
+            rateLimitReachedType: nil
+        )
+        let keyed = unnamed.usingLimitIdIfMissing("gpt-reserve")
+        XCTAssertEqual(keyed.limitId, "gpt-reserve")
+        XCTAssertTrue(keyed.isLunaReserve)
+        XCTAssertEqual(keyed.displayName, "Luna Reserve")
+    }
+
     func testDecodesCurrentRateLimitsPayload() throws {
         let json = #"""
         {
           "rateLimits": {
             "limitId": "codex",
             "limitName": null,
-            "primary": {"usedPercent": 27, "windowDurationMins": 300, "resetsAt": 1783743178},
-            "secondary": {"usedPercent": 15, "windowDurationMins": 10080, "resetsAt": 1784310553},
+            "primary": {"usedPercent": 77, "windowDurationMins": 10080, "resetsAt": 1789808353},
+            "secondary": null,
             "credits": {"hasCredits": false, "unlimited": false, "balance": "0"},
             "individualLimit": null,
             "planType": "pro",
             "rateLimitReachedType": null
           },
           "rateLimitsByLimitId": null,
-          "rateLimitResetCredits": {"availableCount": 4, "credits": null}
+          "rateLimitResetCredits": {
+            "availableCount": 1,
+            "credits": [
+              {"expiresAt": 1791173941, "status": "available", "title": "Full reset"}
+            ]
+          }
         }
         """#.data(using: .utf8)!
 
         let response = try JSONDecoder().decode(RateLimitsResponse.self, from: json)
 
-        XCTAssertEqual(response.rateLimits.fiveHourWindow?.remainingPercent, 73)
-        XCTAssertEqual(response.rateLimits.weeklyWindow?.remainingPercent, 85)
+        XCTAssertNil(response.rateLimits.fiveHourWindow)
+        XCTAssertEqual(response.rateLimits.weeklyWindow?.remainingPercent, 23)
         XCTAssertEqual(response.rateLimits.credits?.balance, "0")
-        XCTAssertEqual(response.rateLimitResetCredits?.availableCount, 4)
+        XCTAssertEqual(response.rateLimitResetCredits?.availableCount, 1)
+        XCTAssertEqual(response.rateLimitResetCredits?.nextExpiration, 1_791_173_941)
     }
 
     func testTokenFormattingUsesCompactUnits() {
@@ -104,6 +157,16 @@ final class UsageModelsTests: XCTestCase {
         XCTAssertEqual(
             UsageFormatters.resetLabel(Int64(reset.timeIntervalSince1970), now: now),
             UsageFormatters.shortTime.string(from: reset)
+        )
+    }
+
+    func testFullResetLabelIncludesDateAndTime() {
+        let timestamp: Int64 = 1_789_808_353
+        let date = Date(timeIntervalSince1970: TimeInterval(timestamp))
+
+        XCTAssertEqual(
+            UsageFormatters.fullResetLabel(timestamp),
+            UsageFormatters.fullDateTime.string(from: date)
         )
     }
 

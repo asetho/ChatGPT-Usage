@@ -20,6 +20,8 @@ internal static class UpdateCheckService
     public static Version CurrentVersion =>
         Assembly.GetEntryAssembly()?.GetName().Version ?? new Version(0, 0, 0);
 
+    public static string CurrentVersionText => FormatVersion(CurrentVersion);
+
     public static async Task<AvailableUpdateInfo?> FetchAvailableUpdateAsync(
         Version currentVersion,
         CancellationToken cancellationToken = default)
