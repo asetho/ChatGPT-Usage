@@ -5,7 +5,8 @@
         ShowInTaskbar="False" ShowActivated="False" Topmost="True"
         Background="Transparent" AllowsTransparency="True">
     <Border Background="#D914171D" BorderBrush="#59616E" BorderThickness="1" CornerRadius="7" Padding="7,4"
-            MouseLeftButtonDown="Widget_Click">
+            ToolTip="Click to open usage. Drag to move."
+            MouseLeftButtonDown="Widget_MouseLeftButtonDown">
         <Grid>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="20" />
