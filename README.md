@@ -4,7 +4,7 @@
 
 A lightweight macOS menu-bar and Windows tray companion for viewing Codex usage. Both apps show the remaining weekly percentage and reset date, available reset credits and their expiration, extra model limits, token totals, refresh controls, and a direct link to the ChatGPT usage dashboard.
 
-On macOS, click the menu-bar item to open the usage menu or double-click it to open the ChatGPT desktop app. On Windows, the percentage stays visible in a floating widget near the clock; click the widget or tray icon to open the full usage popup.
+On macOS, click the menu-bar item to open the usage menu or double-click it to open the ChatGPT desktop app. On Windows, the percentage stays visible in a floating widget near the clock; click the widget or tray icon to open the full usage popup, or drag the widget wherever you prefer. Its position is remembered, and **Reset widget position** in the tray menu returns it to the bottom-right corner.
 
 This is an unofficial local companion and is not distributed by OpenAI.
 

@@ -3,9 +3,12 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Height="36" MinWidth="76" SizeToContent="Width" ResizeMode="NoResize" WindowStyle="None"
         ShowInTaskbar="False" ShowActivated="False" Topmost="True"
-        Background="Transparent" AllowsTransparency="True">
+        Background="Transparent" AllowsTransparency="True"
+        MouseLeftButtonDown="Widget_MouseLeftButtonDown"
+        MouseLeftButtonUp="Widget_MouseLeftButtonUp"
+        MouseMove="Widget_MouseMove">
     <Border Background="#D914171D" BorderBrush="#59616E" BorderThickness="1" CornerRadius="7" Padding="7,4"
-            MouseLeftButtonDown="Widget_Click">
+            ToolTip="Click to open usage. Drag to move.">
         <Grid>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="20" />

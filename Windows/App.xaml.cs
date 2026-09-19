@@ -37,6 +37,7 @@ public partial class App : System.Windows.Application
         var menu = new Forms.ContextMenuStrip();
         menu.Items.Add("Show usage", null, (_, _) => Dispatcher.Invoke(mainWindow.ShowNearBottomRight));
         menu.Items.Add("Refresh", null, async (_, _) => await Dispatcher.InvokeAsync(usage.RefreshAsync));
+        menu.Items.Add("Reset widget position", null, (_, _) => Dispatcher.Invoke(usageWidget.ResetPosition));
         menu.Items.Add(new Forms.ToolStripSeparator());
         menu.Items.Add("Quit", null, (_, _) => Dispatcher.Invoke(ExitApplication));
 
