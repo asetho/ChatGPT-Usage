@@ -20,6 +20,7 @@ public partial class UsageWidget : Window
     private const uint SetWindowPosFlags = 0x0001 | 0x0004 | 0x0010;
 
     private readonly Action openUsage;
+    private Point? clickStartPosition;
     private bool hasCustomPosition;
     private bool isDragging;
     private bool positionQueued;
@@ -66,7 +67,30 @@ public partial class UsageWidget : Window
         }
 
         e.Handled = true;
-        var startingPosition = new Point(Left, Top);
+        clickStartPosition = e.GetPosition(this);
+        _ = Mouse.Capture(this);
+    }
+
+    private void Widget_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
+    {
+        if (clickStartPosition is not { } startingPosition
+            || e.LeftButton != MouseButtonState.Pressed)
+        {
+            return;
+        }
+
+        var currentPosition = e.GetPosition(this);
+        if (Math.Abs(currentPosition.X - startingPosition.X) < SystemParameters.MinimumHorizontalDragDistance
+            && Math.Abs(currentPosition.Y - startingPosition.Y) < SystemParameters.MinimumVerticalDragDistance)
+        {
+            return;
+        }
+
+        clickStartPosition = null;
+        if (IsMouseCaptured)
+        {
+            ReleaseMouseCapture();
+        }
 
         isDragging = true;
         try
@@ -82,17 +106,30 @@ public partial class UsageWidget : Window
             isDragging = false;
         }
 
-        var moved = Math.Abs(Left - startingPosition.X) >= 0.5
-            || Math.Abs(Top - startingPosition.Y) >= 0.5;
-        if (!moved)
-        {
-            openUsage();
-            return;
-        }
-
         hasCustomPosition = true;
         KeepCustomPositionOnScreen();
         SaveCurrentPosition();
+    }
+
+    private void Widget_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ChangedButton != MouseButton.Left)
+        {
+            return;
+        }
+
+        e.Handled = true;
+        var shouldOpenUsage = clickStartPosition is not null;
+        clickStartPosition = null;
+        if (IsMouseCaptured)
+        {
+            ReleaseMouseCapture();
+        }
+
+        if (shouldOpenUsage)
+        {
+            openUsage();
+        }
     }
 
     private void SystemParameters_StaticPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)

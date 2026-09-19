@@ -6,7 +6,9 @@
         Background="Transparent" AllowsTransparency="True">
     <Border Background="#D914171D" BorderBrush="#59616E" BorderThickness="1" CornerRadius="7" Padding="7,4"
             ToolTip="Click to open usage. Drag to move."
-            MouseLeftButtonDown="Widget_MouseLeftButtonDown">
+            MouseLeftButtonDown="Widget_MouseLeftButtonDown"
+            MouseLeftButtonUp="Widget_MouseLeftButtonUp"
+            MouseMove="Widget_MouseMove">
         <Grid>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="20" />
