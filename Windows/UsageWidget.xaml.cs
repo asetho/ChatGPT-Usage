@@ -169,11 +169,34 @@ public partial class UsageWidget : Window
 
     private void PositionNearClock()
     {
-        var workArea = SystemParameters.WorkArea;
+        MoveToPrimaryMonitor();
+
+        var workArea = CurrentMonitorWorkArea();
         var width = ActualWidth > 0 ? ActualWidth : MinWidth;
         var height = ActualHeight > 0 ? ActualHeight : Height;
         Left = workArea.Right - width - ScreenMargin;
         Top = workArea.Bottom - height - ScreenMargin;
+    }
+
+    private void MoveToPrimaryMonitor()
+    {
+        var primaryScreen = Forms.Screen.PrimaryScreen;
+        var handle = new WindowInteropHelper(this).Handle;
+        if (primaryScreen is null
+            || handle == IntPtr.Zero
+            || string.Equals(
+                Forms.Screen.FromHandle(handle).DeviceName,
+                primaryScreen.DeviceName,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        var workArea = primaryScreen.WorkingArea;
+        _ = RestorePosition(new Point(
+            workArea.Left + (workArea.Width / 2.0),
+            workArea.Top + (workArea.Height / 2.0)));
+        UpdateLayout();
     }
 
     private void KeepCustomPositionOnScreen()
