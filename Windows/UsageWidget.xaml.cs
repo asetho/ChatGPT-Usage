@@ -169,7 +169,7 @@ public partial class UsageWidget : Window
 
     private void PositionNearClock()
     {
-        var workArea = CurrentMonitorWorkArea();
+        var workArea = SystemParameters.WorkArea;
         var width = ActualWidth > 0 ? ActualWidth : MinWidth;
         var height = ActualHeight > 0 ? ActualHeight : Height;
         Left = workArea.Right - width - ScreenMargin;
