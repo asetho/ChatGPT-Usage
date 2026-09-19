@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Runtime.InteropServices;
 using Microsoft.Win32;
 using System.Windows;
 using System.Windows.Input;
@@ -16,6 +17,7 @@ public partial class UsageWidget : Window
     private const string PositionRegistryPath = @"Software\asetho\ChatGPT Usage";
     private const string LeftRegistryValue = "WidgetLeft";
     private const string TopRegistryValue = "WidgetTop";
+    private const uint SetWindowPosFlags = 0x0001 | 0x0004 | 0x0010;
 
     private readonly Action openUsage;
     private bool hasCustomPosition;
@@ -43,8 +45,7 @@ public partial class UsageWidget : Window
         hasCustomPosition = TryLoadPosition(out var savedPosition);
         if (hasCustomPosition)
         {
-            Left = savedPosition.X;
-            Top = savedPosition.Y;
+            hasCustomPosition = RestorePosition(savedPosition);
         }
 
         QueuePositionUpdate();
@@ -91,7 +92,7 @@ public partial class UsageWidget : Window
 
         hasCustomPosition = true;
         KeepCustomPositionOnScreen();
-        SavePosition(new Point(Left, Top));
+        SaveCurrentPosition();
     }
 
     private void SystemParameters_StaticPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -120,7 +121,7 @@ public partial class UsageWidget : Window
             if (hasCustomPosition)
             {
                 KeepCustomPositionOnScreen();
-                SavePosition(new Point(Left, Top));
+                SaveCurrentPosition();
             }
             else
             {
@@ -156,6 +157,32 @@ public partial class UsageWidget : Window
         var topLeft = transform.Transform(new Point(workingArea.Left, workingArea.Top));
         var bottomRight = transform.Transform(new Point(workingArea.Right, workingArea.Bottom));
         return new Rect(topLeft, bottomRight);
+    }
+
+    private bool RestorePosition(Point screenPosition)
+    {
+        var handle = new WindowInteropHelper(this).Handle;
+        return handle != IntPtr.Zero
+            && SetWindowPos(
+                handle,
+                IntPtr.Zero,
+                (int)Math.Round(screenPosition.X),
+                (int)Math.Round(screenPosition.Y),
+                0,
+                0,
+                SetWindowPosFlags);
+    }
+
+    private void SaveCurrentPosition()
+    {
+        try
+        {
+            SavePosition(PointToScreen(new Point(0, 0)));
+        }
+        catch (InvalidOperationException)
+        {
+            // The window can disappear while a queued position update is running.
+        }
     }
 
     private static bool TryLoadPosition(out Point position)
@@ -210,4 +237,15 @@ public partial class UsageWidget : Window
             // Resetting the in-memory position still works if registry access is unavailable.
         }
     }
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SetWindowPos(
+        IntPtr hWnd,
+        IntPtr hWndInsertAfter,
+        int x,
+        int y,
+        int cx,
+        int cy,
+        uint flags);
 }
