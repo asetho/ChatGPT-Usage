@@ -1,0 +1,96 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  macos-tests:
+    name: macOS tests
+    runs-on: macos-15
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate --spec project.yml
+
+      - name: Run macOS tests
+        run: >-
+          xcodebuild
+          -project CodexUsage.xcodeproj
+          -scheme CodexUsage
+          -configuration Debug
+          -destination 'platform=macOS'
+          -derivedDataPath "$RUNNER_TEMP/DerivedData"
+          CODE_SIGNING_ALLOWED=NO
+          test
+
+  windows-build:
+    name: Windows .NET 10 build
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Install .NET SDK
+        uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
+        with:
+          dotnet-version: 10.0.401
+
+      - name: Restore locked dependencies
+        shell: pwsh
+        run: >-
+          dotnet restore Windows/ChatGPTUsage.Windows.csproj
+          -r win-x64
+          -p:SelfContained=true
+          --locked-mode
+
+      - name: Publish self-contained app
+        shell: pwsh
+        run: |
+          $version = (Get-Content VERSION -Raw).Trim()
+          dotnet publish Windows/ChatGPTUsage.Windows.csproj `
+            -c Release `
+            -r win-x64 `
+            --self-contained true `
+            --no-restore `
+            -p:Version=$version `
+            -p:FileVersion=$version `
+            -p:AssemblyVersion=$version `
+            -o "$env:RUNNER_TEMP\ChatGPTUsage"
+
+      - name: Verify published app
+        shell: pwsh
+        run: |
+          $output = Join-Path $env:RUNNER_TEMP 'ChatGPTUsage'
+          $app = Join-Path $output 'ChatGPTUsage.Windows.exe'
+          $runtimeConfig = Join-Path $output 'ChatGPTUsage.Windows.runtimeconfig.json'
+          if (!(Test-Path -LiteralPath $app -PathType Leaf)) {
+            throw "Published executable was not found: $app"
+          }
+          if (!(Test-Path -LiteralPath $runtimeConfig -PathType Leaf)) {
+            throw "Runtime configuration was not found: $runtimeConfig"
+          }
+
+          $runtime = Get-Content -LiteralPath $runtimeConfig -Raw | ConvertFrom-Json
+          if ($runtime.runtimeOptions.tfm -ne 'net10.0') {
+            throw "Expected net10.0 runtime, found $($runtime.runtimeOptions.tfm)."
+          }
