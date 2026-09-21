@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Windows;
 
 namespace ChatGPTUsage.Windows;
@@ -116,16 +115,17 @@ public partial class MainWindow : Window
 
     private async void Refresh_Click(object sender, RoutedEventArgs e) => await ((UsageViewModel)DataContext).RefreshAsync();
 
-    private void OpenUsage_Click(object sender, RoutedEventArgs e) => OpenUrl("https://chatgpt.com/codex/settings/usage");
+    private void OpenUsage_Click(object sender, RoutedEventArgs e) =>
+        ExternalLinkLauncher.TryOpen("https://chatgpt.com/codex/settings/usage");
 
     private void OpenReserveGuide_Click(object sender, RoutedEventArgs e) =>
-        OpenUrl("https://help-lb.openai.com/en/articles/20001499-luna-reserve-in-codex-and-chatgpt-work");
+        ExternalLinkLauncher.TryOpen("https://help-lb.openai.com/en/articles/20001499-luna-reserve-in-codex-and-chatgpt-work");
 
     private void OpenUpdate_Click(object sender, RoutedEventArgs e)
     {
         if (((UsageViewModel)DataContext).UpdateUrl is { } url)
         {
-            OpenUrl(url);
+            ExternalLinkLauncher.TryOpen(url);
         }
     }
 
@@ -143,6 +143,4 @@ public partial class MainWindow : Window
     }
 
     private void Quit_Click(object sender, RoutedEventArgs e) => ((App)System.Windows.Application.Current).ExitApplication();
-
-    private static void OpenUrl(string url) => Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
 }

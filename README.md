@@ -38,7 +38,7 @@ The apps launch a local `codex app-server` process and reuse Codex's existing Ch
 | Platform | Package | Requirements |
 | --- | --- | --- |
 | macOS | `ChatGPTUsage-<version>.dmg` | macOS 13 or later; Apple silicon or Intel |
-| Windows | `ChatGPTUsage-Setup-<version>.exe` | x64-compatible Windows |
+| Windows | `ChatGPTUsage-Setup-<version>.exe` | Windows 11, x64 |
 
 Both platforms require a working Codex CLI signed in to ChatGPT under the same user account. The macOS app can also use the CLI bundled with the ChatGPT desktop app.
 
@@ -96,7 +96,7 @@ Run from PowerShell:
 scripts\build-windows-installer.ps1
 ```
 
-Requires the .NET 8 SDK and Inno Setup 6. The script creates `Windows/dist/ChatGPTUsage-Setup-<version>.exe` and its checksum.
+Requires the .NET SDK 10.0.401 (or a newer 10.0.4xx patch) and Inno Setup 6. The script creates `Windows/dist/ChatGPTUsage-Setup-<version>.exe` and its checksum.
 
 ### Versioning and packages
 

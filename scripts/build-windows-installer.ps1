@@ -16,10 +16,19 @@ if (Test-Path -LiteralPath $payload) {
 
 & (Join-Path $repoRoot 'scripts\generate-windows-icon.ps1') -OutputPath (Join-Path $windowsRoot 'Assets\ChatGPTUsage.ico')
 
+dotnet restore (Join-Path $windowsRoot 'ChatGPTUsage.Windows.csproj') `
+    -r win-x64 `
+    -p:SelfContained=true `
+    --locked-mode
+if ($LASTEXITCODE -ne 0) {
+    throw "dotnet restore failed with exit code $LASTEXITCODE. Update packages.lock.json before building the installer."
+}
+
 dotnet publish (Join-Path $windowsRoot 'ChatGPTUsage.Windows.csproj') `
     -c Release `
     -r win-x64 `
     --self-contained true `
+    --no-restore `
     -p:Version=$version `
     -p:FileVersion=$version `
     -p:AssemblyVersion=$version `
