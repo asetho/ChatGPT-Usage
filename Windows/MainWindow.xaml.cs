@@ -116,7 +116,7 @@ public partial class MainWindow : Window
     private async void Refresh_Click(object sender, RoutedEventArgs e) => await ((UsageViewModel)DataContext).RefreshAsync();
 
     private void OpenUsage_Click(object sender, RoutedEventArgs e) =>
-        ExternalLinkLauncher.TryOpen("https://chatgpt.com/codex/settings/usage");
+        ExternalLinkLauncher.TryOpen("https://chatgpt.com/settings/usage?tab=overview");
 
     private void OpenReserveGuide_Click(object sender, RoutedEventArgs e) =>
         ExternalLinkLauncher.TryOpen("https://help-lb.openai.com/en/articles/20001499-luna-reserve-in-codex-and-chatgpt-work");

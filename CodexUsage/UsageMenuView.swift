@@ -5,7 +5,7 @@ struct UsageMenuView: View {
     @EnvironmentObject private var store: UsageStore
     @State private var isShowingAbout = false
 
-    private let usageDashboardURL = URL(string: "https://chatgpt.com/codex/settings/usage")!
+    private let usageDashboardURL = URL(string: "https://chatgpt.com/settings/usage?tab=overview")!
 
     var body: some View {
         VStack(spacing: 0) {
