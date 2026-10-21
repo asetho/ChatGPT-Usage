@@ -17,7 +17,7 @@ enum UpdateInstaller {
     private static var pendingURL: URL { stateDirectory.appendingPathComponent("pending.json") }
     private static var errorURL: URL { stateDirectory.appendingPathComponent("last-error.txt") }
 
-    private struct PendingUpdate: Codable {
+    struct PendingUpdate: Codable {
         let target: URL
         let version: String
         let transaction: URL
@@ -25,13 +25,62 @@ enum UpdateInstaller {
 
     // The new process acknowledges launch before the helper removes the rollback copy.
     static func recordSuccessfulLaunch() {
-        guard let data = try? Data(contentsOf: pendingURL),
-              let pending = try? JSONDecoder().decode(PendingUpdate.self, from: data),
-              Bundle.main.bundleURL.standardizedFileURL == pending.target.standardizedFileURL,
-              Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String == pending.version,
-              pending.transaction.deletingLastPathComponent().standardizedFileURL == stateDirectory.standardizedFileURL,
-              pending.transaction.lastPathComponent.hasPrefix("transaction-") else { return }
-        try? Data().write(to: pending.transaction.appendingPathComponent("launched"), options: .atomic)
+        try? reconcilePendingUpdate(in: stateDirectory, target: Bundle.main.bundleURL,
+                                    identifier: Bundle.main.bundleIdentifier ?? "com.aaronwhippo.CodexUsage",
+                                    launchedVersion: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String)
+    }
+
+    // A terminated helper must not permanently block updates. Retain abandoned files for recovery.
+    static func reconcilePendingUpdate(in directory: URL, target: URL, identifier: String,
+                                       launchedVersion: String? = nil,
+                                       helperIsRunning: (URL) throws -> Bool = isHelperRunning) throws {
+        let files = FileManager.default
+        let pendingURL = directory.appendingPathComponent("pending.json")
+        guard files.fileExists(atPath: pendingURL.path) else { return }
+        let data = try Data(contentsOf: pendingURL)
+        if let pending = try? JSONDecoder().decode(PendingUpdate.self, from: data),
+           pending.transaction.deletingLastPathComponent().standardizedFileURL.path == directory.standardizedFileURL.path,
+           pending.transaction.lastPathComponent.hasPrefix("transaction-"),
+           let uuid = UUID(uuidString: String(pending.transaction.lastPathComponent.dropFirst(12))) {
+            if try helperIsRunning(pending.transaction) {
+                if target.standardizedFileURL.path == pending.target.standardizedFileURL.path,
+                   launchedVersion == pending.version {
+                    try Data().write(to: pending.transaction.appendingPathComponent("launched"), options: .atomic)
+                }
+                return
+            }
+            let backup = target.deletingLastPathComponent().appendingPathComponent(".ChatGPTUsage-backup-\(uuid.uuidString).app")
+            if target.standardizedFileURL.path == pending.target.standardizedFileURL.path,
+               !files.fileExists(atPath: target.path), files.fileExists(atPath: backup.path),
+               try backup.resourceValues(forKeys: [.isSymbolicLinkKey]).isSymbolicLink != true {
+                let info = try Data(contentsOf: backup.appendingPathComponent("Contents/Info.plist"))
+                let values = try PropertyListSerialization.propertyList(from: info, format: nil) as? [String: Any]
+                guard let version = values?["CFBundleShortVersionString"] as? String else {
+                    throw UpdateInstallError.message("An interrupted update needs manual recovery. Use View release to reinstall the app.")
+                }
+                try validateBundle(backup, identifier: identifier, version: version)
+                try files.moveItem(at: backup, to: target)
+            }
+        }
+        try files.moveItem(at: pendingURL, to: directory.appendingPathComponent("abandoned-\(UUID().uuidString).json"))
+    }
+
+    static func isHelperRunning(in transaction: URL) throws -> Bool {
+        guard let text = try? String(contentsOf: transaction.appendingPathComponent("helper.pid"), encoding: .utf8),
+              let pid = Int32(text.trimmingCharacters(in: .whitespacesAndNewlines)), pid > 0 else { return false }
+        let process = Process()
+        let output = Pipe()
+        process.executableURL = URL(fileURLWithPath: "/bin/ps")
+        process.arguments = ["-ww", "-p", String(pid), "-o", "command="]
+        process.standardOutput = output
+        process.standardError = FileHandle.nullDevice
+        try process.run()
+        let data = output.fileHandleForReading.readDataToEndOfFile()
+        process.waitUntilExit()
+        let command = String(decoding: data, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
+        // Checking the unique helper path also avoids treating a reused PID as this transaction.
+        return process.terminationStatus == 0
+            && command.hasPrefix("/bin/sh \(transaction.appendingPathComponent("install-update.sh").path) ")
     }
 
     static func takePreviousError() -> String? {
@@ -46,13 +95,15 @@ enum UpdateInstaller {
             throw UpdateInstallError.message("This release needs to be installed from the release page.")
         }
         let target = Bundle.main.bundleURL.standardizedFileURL
-        try validateTarget(target)
         let files = FileManager.default
         try files.createDirectory(at: stateDirectory, withIntermediateDirectories: true,
                                   attributes: [.posixPermissions: 0o700])
+        try reconcilePendingUpdate(in: stateDirectory, target: target,
+                                   identifier: Bundle.main.bundleIdentifier ?? "com.aaronwhippo.CodexUsage")
         guard !files.fileExists(atPath: pendingURL.path) else {
             throw UpdateInstallError.message("An update is still finishing. Try again shortly.")
         }
+        try validateTarget(target)
         let identifier = UUID().uuidString
         let transaction = stateDirectory.appendingPathComponent("transaction-\(identifier)", isDirectory: true)
         let stage = target.deletingLastPathComponent().appendingPathComponent(".ChatGPTUsage-update-\(identifier).app")

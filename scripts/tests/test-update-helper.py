@@ -50,6 +50,7 @@ def scenario(root, success):
         helper = subprocess.Popen(["/bin/sh", str(HELPER), str(parent.pid), str(target), str(stage),
                                    str(backup), str(transaction), str(pending), str(error)])
         wait_for(transaction / "ready")
+        assert int((transaction / "helper.pid").read_text()) == helper.pid
         assert target.exists() and stage.exists() and not backup.exists(), "Replaced app before parent exited"
         parent.terminate()
         parent.wait()
@@ -69,6 +70,7 @@ def scenario(root, success):
             parent.wait()
 
 
+(ROOT / "build").mkdir(exist_ok=True)
 with tempfile.TemporaryDirectory(prefix="chatgpt-usage-update-", dir=ROOT / "build") as temporary:
     root = pathlib.Path(temporary)
     scenario(root, True)

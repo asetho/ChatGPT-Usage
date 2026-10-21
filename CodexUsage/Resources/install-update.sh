@@ -26,6 +26,7 @@ fail() {
     exit 1
 }
 
+printf '%s\n' "$$" > "$transaction/helper.pid"
 touch "$transaction/ready"
 count=0
 while kill -0 "$parent_pid" 2>/dev/null; do
