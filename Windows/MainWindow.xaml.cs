@@ -21,7 +21,9 @@ public partial class MainWindow : Window
 
     public void ShowNearBottomRight()
     {
-        _ = ((UsageViewModel)DataContext).RefreshAsync();
+        var usage = (UsageViewModel)DataContext;
+        usage.UpdateFreshnessStatus();
+        _ = usage.RefreshAsync();
         Show();
         UpdateLayout();
         FitHeightToContent();

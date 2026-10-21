@@ -8,6 +8,9 @@ namespace ChatGPTUsage.Windows;
 public sealed class UsageViewModel : INotifyPropertyChanged
 {
     private bool isRefreshing;
+    private bool lastRefreshFailed;
+    private DateTimeOffset? lastSuccessfulRefresh;
+    private readonly Func<Task<UsageSnapshot>> fetchSnapshot;
     private string weeklyRemaining = "—";
     private string weeklyReset = "—";
     private string resetTitle = "Open ChatGPT Usage";
@@ -25,6 +28,13 @@ public sealed class UsageViewModel : INotifyPropertyChanged
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
+    public UsageViewModel() : this(() => CodexUsageService.FetchAsync()) { }
+
+    internal UsageViewModel(Func<Task<UsageSnapshot>> fetchSnapshot)
+    {
+        this.fetchSnapshot = fetchSnapshot;
+    }
+
     public ObservableCollection<LimitDisplay> AdditionalLimits { get; } = [];
     public ObservableCollection<UsageDetail> TokenUsage { get; } = [];
 
@@ -41,7 +51,28 @@ public sealed class UsageViewModel : INotifyPropertyChanged
     public Visibility TokenUsageVisibility { get => tokenUsageVisibility; private set => Set(ref tokenUsageVisibility, value); }
     public Visibility UpdateAvailableVisibility { get => updateAvailableVisibility; private set => Set(ref updateAvailableVisibility, value); }
     public Visibility ResetExpirationVisibility { get => resetExpirationVisibility; private set => Set(ref resetExpirationVisibility, value); }
-    public string TrayText => $"ChatGPT weekly usage: {WeeklyRemaining} remaining";
+    public bool IsStale => lastSuccessfulRefresh is not null &&
+        (lastRefreshFailed || DateTimeOffset.Now - lastSuccessfulRefresh >= TimeSpan.FromMinutes(2));
+    public string WidgetRemaining => $"{WeeklyRemaining}{(IsStale ? " !" : "")}";
+    public string TrayText => $"ChatGPT weekly usage: {WeeklyRemaining} remaining{(IsStale ? " (stale)" : "")}";
+    public string WidgetToolTip => $"{TrayText}. {RefreshStatus}. Click to open usage. Drag to move.";
+
+    public void UpdateFreshnessStatus()
+    {
+        if (lastSuccessfulRefresh is { } updated)
+        {
+            var age = DateTimeOffset.Now - updated;
+            var ageText = age.TotalMinutes < 1 ? "just now"
+                : age.TotalHours < 1 ? $"{(int)age.TotalMinutes}m ago"
+                : age.TotalDays < 1 ? $"{(int)age.TotalHours}h ago"
+                : $"{(int)age.TotalDays}d ago";
+            RefreshStatus = $"{(IsStale ? "Stale · updated" : "Updated")} {ageText}";
+        }
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsStale)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(WidgetRemaining)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(TrayText)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(WidgetToolTip)));
+    }
 
     public Task RefreshAsync() => RefreshAsync(showErrors: true);
 
@@ -101,27 +132,29 @@ public sealed class UsageViewModel : INotifyPropertyChanged
         if (showErrors)
         {
             RefreshStatus = "Refreshing…";
-            ErrorMessage = "";
         }
         try
         {
-            ApplySnapshot(await CodexUsageService.FetchAsync());
+            ApplySnapshot(await fetchSnapshot());
+            lastSuccessfulRefresh = DateTimeOffset.Now;
+            lastRefreshFailed = false;
             ErrorMessage = "";
-            RefreshStatus = "Updated just now";
         }
         catch (Exception error)
         {
-            if (showErrors || WeeklyRemaining == "—")
-            {
-                ErrorMessage = error is TimeoutException
-                    ? "Refresh timed out. It will retry automatically."
-                    : error.Message;
-                RefreshStatus = "Unavailable";
-            }
+            lastRefreshFailed = true;
+            var detail = error is TimeoutException
+                ? "Refresh timed out. It will retry automatically."
+                : error.Message;
+            ErrorMessage = lastSuccessfulRefresh is not null
+                ? showErrors ? $"Showing the last update. {detail}" : "Showing the last update. Retrying automatically."
+                : detail;
+            if (lastSuccessfulRefresh is null) RefreshStatus = "Unavailable";
         }
         finally
         {
             isRefreshing = false;
+            UpdateFreshnessStatus();
         }
     }
 

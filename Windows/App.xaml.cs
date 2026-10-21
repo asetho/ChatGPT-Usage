@@ -68,7 +68,11 @@ public partial class App : System.Windows.Application
         {
             Interval = TimeSpan.FromMinutes(1)
         };
-        refreshTimer.Tick += (_, _) => _ = usage.RefreshInBackgroundAsync();
+        refreshTimer.Tick += (_, _) =>
+        {
+            usage.UpdateFreshnessStatus();
+            _ = usage.RefreshInBackgroundAsync();
+        };
         refreshTimer.Start();
 
         updateCheckTimer = new DispatcherTimer

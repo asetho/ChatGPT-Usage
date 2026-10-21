@@ -147,6 +147,14 @@ struct CodexUsageSnapshot: Equatable {
 }
 
 enum UsageFormatters {
+    static func updateAgeLabel(_ fetchedAt: Date, now: Date = Date()) -> String {
+        let age = max(0, now.timeIntervalSince(fetchedAt))
+        if age < 60 { return "just now" }
+        if age < 3_600 { return "\(Int(age / 60))m ago" }
+        if age < 86_400 { return "\(Int(age / 3_600))h ago" }
+        return "\(Int(age / 86_400))d ago"
+    }
+
     static let isoDay: DateFormatter = {
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .gregorian)

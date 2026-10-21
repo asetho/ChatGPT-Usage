@@ -1,3 +1,4 @@
+import AppKit
 import Darwin
 import Foundation
 
@@ -12,7 +13,7 @@ enum CodexUsageError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .codexNotFound:
-            return "Codex CLI was not found. Install or sign in to Codex, then refresh."
+            return "Codex was not found. Install Codex and sign in to ChatGPT, or choose an existing Codex executable in Settings."
         case .launchFailed(let message):
             return "Could not start Codex: \(message)"
         case .timedOut:
@@ -31,27 +32,61 @@ enum CodexUsageError: LocalizedError {
 struct CodexUsageService {
     static func fetch(
         timeout: TimeInterval = 15,
-        executablePath: String? = nil
+        executablePath: String? = nil,
+        optionalUsageTimeout: TimeInterval = 2
     ) async throws -> CodexUsageSnapshot {
         try await Task.detached(priority: .utility) {
-            try CodexUsageProbe(timeout: timeout, executablePath: executablePath).fetch()
+            try CodexUsageProbe(
+                timeout: timeout,
+                executablePath: executablePath,
+                optionalUsageTimeout: optionalUsageTimeout
+            ).fetch()
         }.value
     }
 }
 
-private struct CodexExecutableLocator {
-    static func find() -> String? {
-        let environment = ProcessInfo.processInfo.environment
-        let home = FileManager.default.homeDirectoryForCurrentUser.path
-        let candidates = [
-            environment["CODEX_EXECUTABLE"],
-            "/Applications/ChatGPT.app/Contents/Resources/codex",
+struct CodexExecutableLocator {
+    static let bundledExecutablePaths = [
+        "Contents/Resources/codex-cli/bin/codex",
+        "Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex",
+        "Contents/Resources/codex"
+    ]
+
+    static func executable(at url: URL) -> String? {
+        let candidates = url.pathExtension.lowercased() == "app"
+            ? bundledExecutablePaths.map { url.appendingPathComponent($0).path }
+            : [url.path]
+        return candidates.first { path in
+            var isDirectory: ObjCBool = false
+            return FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory)
+                && !isDirectory.boolValue
+                && FileManager.default.isExecutableFile(atPath: path)
+        }
+    }
+
+    static func find(
+        environment: [String: String] = ProcessInfo.processInfo.environment,
+        home: String = FileManager.default.homeDirectoryForCurrentUser.path,
+        applicationURLs: [URL]? = nil,
+        standardPaths: [String]? = nil
+    ) -> String? {
+        let applications = applicationURLs ?? (
+            [NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.openai.codex")]
+                .compactMap { $0 }
+            + ["/Applications/ChatGPT.app", "/Applications/Codex.app",
+               "\(home)/Applications/ChatGPT.app", "\(home)/Applications/Codex.app"]
+                .map { URL(fileURLWithPath: $0) }
+        )
+        let candidates = [environment["CODEX_EXECUTABLE"]].compactMap { $0 }
+            + applications.map(\.path) + (standardPaths ?? [
             "/opt/homebrew/bin/codex",
             "/usr/local/bin/codex",
             "\(home)/.local/bin/codex"
-        ].compactMap { $0 }
+        ]) + (environment["PATH"] ?? "").split(separator: ":")
+            .filter { $0.hasPrefix("/") }
+            .map { "\($0)/codex" }
 
-        return candidates.first(where: { FileManager.default.isExecutableFile(atPath: $0) })
+        return candidates.lazy.compactMap { executable(at: URL(fileURLWithPath: $0)) }.first
     }
 }
 
@@ -62,6 +97,7 @@ private final class CodexUsageProbe: @unchecked Sendable {
 
     private let timeout: TimeInterval
     private let executablePath: String?
+    private let optionalUsageTimeout: TimeInterval
     private let decoder = JSONDecoder()
     private let process = Process()
     private let standardInput = Pipe()
@@ -79,9 +115,10 @@ private final class CodexUsageProbe: @unchecked Sendable {
     private var resultError: Error?
     private var didFinish = false
 
-    init(timeout: TimeInterval, executablePath: String?) {
+    init(timeout: TimeInterval, executablePath: String?, optionalUsageTimeout: TimeInterval) {
         self.timeout = timeout
         self.executablePath = executablePath
+        self.optionalUsageTimeout = optionalUsageTimeout
     }
 
     func fetch() throws -> CodexUsageSnapshot {
@@ -131,7 +168,8 @@ private final class CodexUsageProbe: @unchecked Sendable {
                 guard !self.didFinish else { return }
                 let detail = String(data: self.errorBuffer, encoding: .utf8)?
                     .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-                self.complete(CodexUsageError.processExited(terminated.terminationStatus, detail))
+                self.complete(self.limitsResponse == nil
+                    ? CodexUsageError.processExited(terminated.terminationStatus, detail) : nil)
             }
         }
 
@@ -161,7 +199,7 @@ private final class CodexUsageProbe: @unchecked Sendable {
             queue.sync {
                 if !self.didFinish {
                     self.didFinish = true
-                    self.resultError = CodexUsageError.timedOut
+                    self.resultError = self.limitsResponse == nil ? CodexUsageError.timedOut : nil
                 }
             }
         }
@@ -216,6 +254,7 @@ private final class CodexUsageProbe: @unchecked Sendable {
     }
 
     private func handleResponse(_ object: [String: Any]) {
+        guard !didFinish else { return }
         guard let id = (object["id"] as? NSNumber)?.intValue else { return }
 
         if let error = object["error"] as? [String: Any] {
@@ -243,6 +282,10 @@ private final class CodexUsageProbe: @unchecked Sendable {
             switch id {
             case 3:
                 limitsResponse = try decoder.decode(RateLimitsResponse.self, from: data)
+                // Token statistics are optional; do not let a stalled endpoint hide quota data.
+                queue.asyncAfter(deadline: .now() + optionalUsageTimeout) { [weak self] in
+                    self?.complete()
+                }
             case 4:
                 usageResponse = try decoder.decode(AccountUsageResponse.self, from: data)
                 usageFinished = true

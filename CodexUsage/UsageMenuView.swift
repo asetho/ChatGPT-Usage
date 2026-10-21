@@ -3,7 +3,9 @@ import SwiftUI
 
 struct UsageMenuView: View {
     @EnvironmentObject private var store: UsageStore
+    @ObservedObject private var settings = AppSettings.shared
     @State private var isShowingAbout = false
+    @State private var isShowingSettings = false
 
     private let usageDashboardURL = URL(string: "https://chatgpt.com/settings/usage?tab=overview")!
 
@@ -167,7 +169,15 @@ struct UsageMenuView: View {
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-            Button("Try Again") { store.refresh() }
+            HStack {
+                Button("Try Again") { store.refresh() }
+                Button("Choose Codex…") {
+                    if settings.chooseExecutable() { store.refresh() }
+                }
+            }
+            if let error = settings.executableError {
+                Text(error).font(.caption).foregroundStyle(.orange)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
@@ -227,23 +237,39 @@ struct UsageMenuView: View {
     }
 
     private var footer: some View {
-        HStack(spacing: 12) {
-            Button(action: { store.refresh() }) {
-                Label("Refresh", systemImage: "arrow.clockwise")
-            }
-            .buttonStyle(.plain)
-            .disabled(store.isRefreshing)
-
+        VStack(alignment: .leading, spacing: 8) {
             if let fetchedAt = store.snapshot?.fetchedAt {
-                Text(fetchedAt, style: .relative)
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
+                TimelineView(.periodic(from: .now, by: 30)) { context in
+                    HStack(spacing: 3) {
+                        if store.isStale {
+                            Image(systemName: "exclamationmark.triangle")
+                        }
+                        Text("\(store.isStale ? "Stale · updated" : "Updated") \(UsageFormatters.updateAgeLabel(fetchedAt, now: context.date))")
+                    }
+                    .foregroundStyle(store.isStale ? .orange : .secondary)
+                    .lineLimit(1)
+                    .help("Last successful update: \(UsageFormatters.fullDateTime.string(from: fetchedAt))")
+                }
             }
 
-            Spacer()
+            HStack(spacing: 14) {
+                Button(action: { store.refresh() }) {
+                    Label("Refresh", systemImage: "arrow.clockwise")
+                }
+                .disabled(store.isRefreshing)
 
-            Button("Quit") {
-                NSApplication.shared.terminate(nil)
+                Button {
+                    isShowingSettings = true
+                } label: {
+                    Label("Settings", systemImage: "gearshape")
+                }
+                .popover(isPresented: $isShowingSettings) {
+                    UsageSettingsView(settings: settings, store: store)
+                }
+
+                Spacer()
+
+                Button("Quit") { NSApplication.shared.terminate(nil) }
             }
             .buttonStyle(.plain)
         }
@@ -273,6 +299,72 @@ struct UsageMenuView: View {
 
     private func openUsageDashboard() {
         NSWorkspace.shared.open(usageDashboardURL)
+    }
+}
+
+struct UsageSettingsView: View {
+    @ObservedObject var settings: AppSettings
+    @ObservedObject var store: UsageStore
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Settings").font(.headline)
+
+            Toggle("Launch at login", isOn: Binding(
+                get: { settings.launchAtLogin },
+                set: { settings.setLaunchAtLogin($0) }
+            ))
+            .toggleStyle(.checkbox)
+
+            if settings.loginNeedsApproval {
+                Text("Allow ChatGPT Usage in Login Items to finish enabling launch at login.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            if let error = settings.loginError {
+                Text(error).font(.caption).foregroundStyle(.orange)
+            }
+            if settings.loginNeedsApproval || settings.loginError != nil {
+                Button("Open Login Items") { settings.openLoginSettings() }
+            }
+
+            Divider()
+
+            Text("Codex").font(.subheadline.weight(.semibold))
+            Text(settings.codexExecutablePath == nil ? "Automatic detection" : "Selected executable")
+                .font(.caption).foregroundStyle(.secondary)
+            Text(settings.codexExecutablePath ?? CodexExecutableLocator.find() ?? "Codex was not found.")
+                .font(.caption).textSelection(.enabled)
+                .lineLimit(3).truncationMode(.middle)
+                .fixedSize(horizontal: false, vertical: true)
+
+            HStack {
+                Button("Choose…") {
+                    if settings.chooseExecutable() { store.refresh() }
+                }
+                if settings.codexExecutablePath != nil {
+                    Button("Use Automatic") {
+                        settings.useAutomaticDetection()
+                        store.refresh()
+                    }
+                }
+            }
+            if let error = settings.executableError {
+                Text(error).font(.caption).foregroundStyle(.orange)
+            }
+
+            HStack {
+                Spacer()
+                Button("Done") { dismiss() }.keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(20)
+        .frame(width: 340)
+        .preferredColorScheme(.dark)
+        .onAppear { settings.reloadLoginStatus() }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            settings.reloadLoginStatus()
+        }
     }
 }
 

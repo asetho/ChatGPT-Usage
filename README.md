@@ -42,6 +42,10 @@ The apps launch a local `codex app-server` process and reuse Codex's existing Ch
 
 Both platforms require a working Codex CLI signed in to ChatGPT under the same user account. The macOS app can also use the CLI bundled with the ChatGPT desktop app.
 
+On macOS, **Settings** in the usage menu includes **Launch at login** and a **Choose…** option for selecting a Codex executable or the ChatGPT/Codex app. **Use Automatic** returns to automatic detection. If macOS requests approval for launch at login, select **Open Login Items** to finish enabling it.
+
+After a failed refresh, the apps retain the last successful percentage and mark it with `!`; the popup shows that the data is stale and when it was last updated. Optional token statistics do not prevent available quota data from appearing.
+
 **Plan compatibility:** the app does not restrict ChatGPT plan types; it displays the limits returned by the signed-in Codex CLI. Business, Enterprise, and Edu workspaces may use different seat allowances, workspace credits, spend controls, or reset windows, so their popup details can differ from Plus and Pro. This companion does not replace workspace billing or administration views.
 
 ### macOS
@@ -100,7 +104,7 @@ Requires the .NET SDK 10.0.401 (or a newer 10.0.4xx patch) and Inno Setup 6. The
 
 ### Versioning and packages
 
-`VERSION` is the release version for both platforms. The Windows build generates the executable and Start-menu icon from the same ChatGPT tray mark. Both platform packages remain unsigned community builds; no paid signing service or certificate is required by these scripts.
+`VERSION` is the release version for both platforms. The Windows build generates the executable and Start-menu icon from the same ChatGPT tray mark. Neither platform package has a verified publisher signature, and the Mac app is not notarized. The Mac bundle uses a local ad hoc signature for Login Items; this does not verify the publisher. No paid signing service or certificate is required by these scripts.
 
 The installation warning is included in the DMG and displayed before Windows setup installs the app. Build scripts normally retain the three newest packages and their checksums. To preserve existing packages during local verification, use `KEEP_OLD_PACKAGES=1 scripts/build-macos-dmg.sh` or `scripts\build-windows-installer.ps1 -KeepOldPackages`.
 

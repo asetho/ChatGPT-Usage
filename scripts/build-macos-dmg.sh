@@ -25,6 +25,10 @@ xcodebuild \
 app="$build_dir/derived-data/Build/Products/Release/ChatGPT Usage.app"
 [[ -d "$app" ]] || { print -u2 "Expected app bundle was not built: $app"; exit 1; }
 
+# Login Items requires a valid bundle signature; ad hoc signing does not verify a publisher.
+codesign --force --sign - --options runtime --timestamp=none "$app"
+codesign --verify --strict "$app"
+
 staging="$build_dir/dmg-root"
 mkdir -p "$staging"
 ditto "$app" "$staging/ChatGPT Usage.app"
