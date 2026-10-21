@@ -4,6 +4,8 @@ ChatGPT Usage is an unofficial local companion. The app itself does not read, co
 
 The app keeps the returned usage snapshot and error state in memory and displays them in its menu bar, tray, widget, or window. It has no app-owned telemetry endpoint, account database, or usage export feature. Usage information is visible to anyone who can see your desktop or screenshots. On Mac, a CLI failure may show a limited excerpt of that process's error output.
 
+On Mac, selecting a Codex executable saves only its local file path in the app's preferences. Selecting **Use Automatic** removes that preference. The optional **Launch at login** setting registers the app with macOS Login Items; turning it off unregisters it. Neither setting stores authentication tokens or usage history.
+
 Opening the usage dashboard opens `https://chatgpt.com/settings/usage?tab=overview` in your browser. Sign-in, purchases, and reset actions there are handled by the external site; this app does not perform them automatically.
 
 At launch and every 12 hours while running, the app makes one unauthenticated HTTPS request to GitHub's public latest-release API for this repository. The request does not include GitHub or Codex credentials. GitHub receives ordinary connection information such as your IP address and the app's user-agent string. A failed update check is ignored, and selecting an update notice opens that release page in your browser.

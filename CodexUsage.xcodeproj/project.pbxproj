@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		C41A3D9DF3264191820A3211 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = C41A3D9DF3264191820A3212 /* AppSettings.swift */; };
 		0C7057EB4BE43F137A0EFFE4 /* UsageMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B486355A73E39E4E96C76640 /* UsageMenuView.swift */; };
 		3BC0BF8E0D6FF89D11569728 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F09F905C5720E63453AC7184 /* Assets.xcassets */; };
 		45BEA48195F8A36C72B81BA6 /* UpdateCheckService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD1725493B3AED87F7BF9453 /* UpdateCheckService.swift */; };
@@ -28,6 +29,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		C41A3D9DF3264191820A3212 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
 		0BDE6402EB79CD9981F92671 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		200E2B77592940E7E1D413AF /* UsageModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageModels.swift; sourceTree = "<group>"; };
 		2FB6E14A0C59BBA6E2187465 /* UsageStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageStore.swift; sourceTree = "<group>"; };
@@ -45,6 +47,7 @@
 		312D540A0E204F0EECEBC7DF /* CodexUsage */ = {
 			isa = PBXGroup;
 			children = (
+				C41A3D9DF3264191820A3212 /* AppSettings.swift */,
 				F09F905C5720E63453AC7184 /* Assets.xcassets */,
 				467BF9B04593D291F69B21E8 /* CodexUsageApp.swift */,
 				882860FCA0691759E7DBB565 /* CodexUsageService.swift */,
@@ -183,6 +186,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C41A3D9DF3264191820A3211 /* AppSettings.swift in Sources */,
 				52CD7CE9F98800C63FA87DA0 /* CodexUsageApp.swift in Sources */,
 				B1113C548A89413E7ADDA1E4 /* CodexUsageService.swift in Sources */,
 				45BEA48195F8A36C72B81BA6 /* UpdateCheckService.swift in Sources */,

@@ -1,4 +1,5 @@
 import XCTest
+import ServiceManagement
 @testable import CodexUsage
 
 final class UpdateCheckServiceTests: XCTestCase {
@@ -37,7 +38,168 @@ final class UpdateCheckServiceTests: XCTestCase {
     }
 }
 
+@MainActor
+final class UsageStoreTests: XCTestCase {
+    func testFailureKeepsLastQuotaAndRecoveryClearsStaleState() async throws {
+        let snapshot = makeSnapshot()
+        var shouldFail = false
+        let store = UsageStore {
+            if shouldFail { throw CodexUsageError.timedOut }
+            return snapshot
+        }
+
+        await store.refresh()?.value
+        XCTAssertEqual(store.menuBarPercentage, "60%")
+        XCTAssertFalse(store.isStale)
+
+        shouldFail = true
+        await store.refresh()?.value
+        XCTAssertEqual(store.snapshot, snapshot)
+        XCTAssertEqual(store.menuBarPercentage, "60% !")
+        XCTAssertTrue(store.statusDescription.contains("Stale data"))
+
+        shouldFail = false
+        await store.refresh()?.value
+        XCTAssertFalse(store.isStale)
+        XCTAssertNil(store.errorMessage)
+        XCTAssertEqual(store.menuBarPercentage, "60%")
+    }
+
+    func testOldSnapshotIsStaleEvenWithoutRefreshError() async {
+        let store = UsageStore { self.makeSnapshot(fetchedAt: Date().addingTimeInterval(-180)) }
+        await store.refresh()?.value
+
+        XCTAssertTrue(store.isStale)
+        XCTAssertEqual(store.menuBarPercentage, "60% !")
+    }
+
+    private func makeSnapshot(fetchedAt: Date = Date()) -> CodexUsageSnapshot {
+        let limits = RateLimitSnapshot(
+            limitId: "codex", limitName: nil,
+            primary: RateLimitWindow(usedPercent: 40, windowDurationMins: 10_080, resetsAt: nil),
+            secondary: nil, credits: nil, individualLimit: nil, planType: "pro", rateLimitReachedType: nil
+        )
+        return CodexUsageSnapshot(
+            defaultRateLimits: limits, rateLimitsById: ["codex": limits],
+            rateLimitResetCredits: nil, accountUsage: nil, fetchedAt: fetchedAt
+        )
+    }
+}
+
+@MainActor
+final class AppSettingsTests: XCTestCase {
+    func testDetectsCodexOnPathAndRejectsDirectories() async throws {
+        let directory = try makeDirectory()
+        let executable = try makeExecutable(at: directory.appendingPathComponent("codex"))
+
+        XCTAssertEqual(CodexExecutableLocator.find(
+            environment: ["PATH": "relative/path:\(directory.path)"],
+            applicationURLs: [], standardPaths: []
+        ), executable.path)
+        XCTAssertNil(CodexExecutableLocator.executable(at: directory))
+        XCTAssertNil(CodexExecutableLocator.find(
+            environment: ["PATH": "relative/path"], applicationURLs: [], standardPaths: []
+        ))
+    }
+
+    func testDetectsCurrentAndLegacyAppBundles() async throws {
+        for relativePath in ["Contents/Resources/codex-cli/bin/codex", "Contents/Resources/codex"] {
+            let app = try makeDirectory().appendingPathComponent("ChatGPT.app")
+            let executable = try makeExecutable(at: app.appendingPathComponent(relativePath))
+
+            XCTAssertEqual(CodexExecutableLocator.find(
+                environment: [:], applicationURLs: [app], standardPaths: []
+            ), executable.path)
+            XCTAssertEqual(CodexExecutableLocator.executable(at: app), executable.path)
+        }
+    }
+
+    func testExecutableSelectionPersistsAndCanReturnToAutomatic() async throws {
+        let defaults = InMemoryDefaults()
+        let login = FakeLoginItem()
+        let settings = AppSettings(defaults: defaults, loginItem: login)
+        let executable = try makeExecutable(at: makeDirectory().appendingPathComponent("codex"))
+
+        XCTAssertTrue(settings.selectExecutable(at: executable))
+        let reloaded = AppSettings(defaults: defaults, loginItem: login)
+        XCTAssertEqual(reloaded.codexExecutablePath, executable.path)
+        XCTAssertFalse(settings.selectExecutable(at: executable.deletingLastPathComponent()))
+        XCTAssertEqual(settings.codexExecutablePath, executable.path)
+
+        settings.useAutomaticDetection()
+        XCTAssertNil(settings.codexExecutablePath)
+        XCTAssertNil(AppSettings(defaults: defaults, loginItem: login).codexExecutablePath)
+    }
+
+    func testLoginToggleReflectsApprovalAndSystemChanges() async {
+        let login = FakeLoginItem()
+        let settings = AppSettings(defaults: InMemoryDefaults(), loginItem: login)
+        settings.setLaunchAtLogin(true)
+        XCTAssertTrue(settings.launchAtLogin)
+        XCTAssertTrue(settings.loginNeedsApproval)
+
+        login.status = .enabled
+        settings.reloadLoginStatus()
+        XCTAssertFalse(settings.loginNeedsApproval)
+
+        settings.setLaunchAtLogin(false)
+        XCTAssertFalse(settings.launchAtLogin)
+        XCTAssertEqual(login.status, .notRegistered)
+    }
+
+    func testFailedLoginRegistrationDoesNotShowEnabled() async {
+        let login = FakeLoginItem()
+        login.shouldFail = true
+        let settings = AppSettings(defaults: InMemoryDefaults(), loginItem: login)
+        settings.setLaunchAtLogin(true)
+
+        XCTAssertFalse(settings.launchAtLogin)
+        XCTAssertNotNil(settings.loginError)
+    }
+
+    private func makeDirectory() throws -> URL {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        addTeardownBlock { try? FileManager.default.removeItem(at: directory) }
+        return directory
+    }
+
+    private func makeExecutable(at url: URL) throws -> URL {
+        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try "#!/bin/sh\nexit 0\n".write(to: url, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: url.path)
+        return url
+    }
+}
+
+private final class FakeLoginItem: LoginItemManaging {
+    var status: SMAppService.Status = .notRegistered
+    var shouldFail = false
+
+    func register() throws {
+        if shouldFail { throw CodexUsageError.launchFailed("Test registration failure") }
+        status = .requiresApproval
+    }
+
+    func unregister() throws { status = .notRegistered }
+}
+
+private final class InMemoryDefaults: UserDefaults {
+    private var values: [String: Any] = [:]
+    override func string(forKey key: String) -> String? { values[key] as? String }
+    override func set(_ value: Any?, forKey key: String) { values[key] = value }
+    override func removeObject(forKey key: String) { values.removeValue(forKey: key) }
+}
+
 final class UsageModelsTests: XCTestCase {
+    func testUpdateAgeLabelsStayCompact() {
+        let now = Date()
+        XCTAssertEqual(UsageFormatters.updateAgeLabel(now, now: now), "just now")
+        XCTAssertEqual(UsageFormatters.updateAgeLabel(now.addingTimeInterval(-300), now: now), "5m ago")
+        XCTAssertEqual(UsageFormatters.updateAgeLabel(now.addingTimeInterval(-7_200), now: now), "2h ago")
+        XCTAssertEqual(UsageFormatters.updateAgeLabel(now.addingTimeInterval(-172_800), now: now), "2d ago")
+    }
+
     func testRemainingPercentageIsClamped() {
         XCTAssertEqual(RateLimitWindow(usedPercent: 27, windowDurationMins: 300, resetsAt: nil).remainingPercent, 73)
         XCTAssertEqual(RateLimitWindow(usedPercent: -5, windowDurationMins: 300, resetsAt: nil).remainingPercent, 100)
@@ -206,6 +368,37 @@ final class CodexUsageServiceTests: XCTestCase {
 
         XCTAssertNil(snapshot.accountUsage)
         XCTAssertEqual(snapshot.codexRateLimits.fiveHourWindow?.remainingPercent, 75)
+    }
+
+    func testRetainsQuotaWhenTokenStatisticsNeverRespond() async throws {
+        let executable = try makeServer(rateLimitsResponse: validRateLimits, usageResponse: "")
+        let snapshot = try await CodexUsageService.fetch(
+            timeout: 2, executablePath: executable.path, optionalUsageTimeout: 0.05
+        )
+
+        XCTAssertEqual(snapshot.codexRateLimits.weeklyWindow?.remainingPercent, 60)
+        XCTAssertNil(snapshot.accountUsage)
+    }
+
+    func testRetainsQuotaAtOverallDeadline() async throws {
+        let executable = try makeServer(rateLimitsResponse: validRateLimits, usageResponse: "")
+        let snapshot = try await CodexUsageService.fetch(
+            timeout: 0.2, executablePath: executable.path, optionalUsageTimeout: 2
+        )
+
+        XCTAssertEqual(snapshot.codexRateLimits.weeklyWindow?.remainingPercent, 60)
+        XCTAssertNil(snapshot.accountUsage)
+    }
+
+    func testMalformedOptionalStatisticsDoNotHideQuota() async throws {
+        let executable = try makeServer(
+            rateLimitsResponse: validRateLimits,
+            usageResponse: #"{"id":4,"result":{"unexpected":true}}"#
+        )
+        let snapshot = try await CodexUsageService.fetch(timeout: 2, executablePath: executable.path)
+
+        XCTAssertEqual(snapshot.codexRateLimits.weeklyWindow?.remainingPercent, 60)
+        XCTAssertNil(snapshot.accountUsage)
     }
 
     func testRejectsMalformedRateLimitsResponse() async throws {

@@ -13,10 +13,14 @@ internal static class CodexUsageService
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
 
-    public static async Task<UsageSnapshot> FetchAsync(CancellationToken cancellationToken = default)
+    public static async Task<UsageSnapshot> FetchAsync(
+        CancellationToken cancellationToken = default,
+        TimeSpan? optionalUsageTimeout = null)
     {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(TimeSpan.FromSeconds(30));
+        using var usageTimeout = new CancellationTokenSource();
+        using var readTimeout = CancellationTokenSource.CreateLinkedTokenSource(timeout.Token, usageTimeout.Token);
         var executable = FindExecutable();
         var startInfo = new ProcessStartInfo
         {
@@ -68,9 +72,18 @@ internal static class CodexUsageService
             RateLimitsResponse? rateLimits = null;
             AccountUsageResponse? accountUsage = null;
             var usageFinished = false;
-            while (!timeout.IsCancellationRequested)
+            while (true)
             {
-                var line = await process.StandardOutput.ReadLineAsync(timeout.Token);
+                string? line;
+                try
+                {
+                    line = await process.StandardOutput.ReadLineAsync(readTimeout.Token);
+                }
+                catch (OperationCanceledException) when (rateLimits is not null && !cancellationToken.IsCancellationRequested)
+                {
+                    // Keep valid quota data even if optional token statistics never arrive.
+                    break;
+                }
                 if (line is null) break;
                 using var document = JsonDocument.Parse(line);
                 var root = document.RootElement;
@@ -99,10 +112,18 @@ internal static class CodexUsageService
                 else if (id == 3)
                 {
                     rateLimits = JsonSerializer.Deserialize<RateLimitsResponse>(result.GetRawText(), JsonOptions);
+                    usageTimeout.CancelAfter(optionalUsageTimeout ?? TimeSpan.FromSeconds(2));
                 }
                 else if (id == 4)
                 {
-                    accountUsage = JsonSerializer.Deserialize<AccountUsageResponse>(result.GetRawText(), JsonOptions);
+                    try
+                    {
+                        accountUsage = JsonSerializer.Deserialize<AccountUsageResponse>(result.GetRawText(), JsonOptions);
+                    }
+                    catch (JsonException)
+                    {
+                        // A changed statistics payload must not break quota refreshes.
+                    }
                     usageFinished = true;
                 }
 
@@ -125,7 +146,7 @@ internal static class CodexUsageService
             }
             return new UsageSnapshot(rateLimits.RateLimits, limitsById, rateLimits.RateLimitResetCredits, accountUsage);
         }
-        catch (OperationCanceledException) when (timeout.IsCancellationRequested)
+        catch (OperationCanceledException) when (timeout.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
         {
             throw new TimeoutException("Codex took too long to return usage data.");
         }

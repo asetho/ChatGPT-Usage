@@ -13,8 +13,26 @@ final class UsageStore: ObservableObject {
 
     private var refreshLoop: Task<Void, Never>?
     private var updateCheckLoop: Task<Void, Never>?
+    private let fetchSnapshot: @MainActor () async throws -> CodexUsageSnapshot
 
     private static let updateCheckIntervalNanoseconds: UInt64 = 12 * 60 * 60 * 1_000_000_000
+
+    init(fetchSnapshot: (@MainActor () async throws -> CodexUsageSnapshot)? = nil) {
+        self.fetchSnapshot = fetchSnapshot ?? {
+            try await CodexUsageService.fetch(executablePath: AppSettings.shared.codexExecutablePath)
+        }
+    }
+
+    var isStale: Bool {
+        guard let snapshot else { return false }
+        return errorMessage != nil || Date().timeIntervalSince(snapshot.fetchedAt) >= 120
+    }
+
+    var statusDescription: String {
+        guard let remainingWeeklyPercent, let snapshot else { return "ChatGPT usage unavailable" }
+        let freshness = isStale ? "Stale data. " : ""
+        return "\(freshness)ChatGPT weekly usage: \(remainingWeeklyPercent)% remaining. Last updated \(UsageFormatters.fullDateTime.string(from: snapshot.fetchedAt))."
+    }
 
     var remainingWeeklyPercent: Int? {
         snapshot?.codexRateLimits.weeklyWindow?.remainingPercent
@@ -22,7 +40,7 @@ final class UsageStore: ObservableObject {
 
     var menuBarPercentage: String {
         guard let remainingWeeklyPercent else { return "--%" }
-        return "\(remainingWeeklyPercent)%"
+        return "\(remainingWeeklyPercent)%\(isStale ? " !" : "")"
     }
 
     func start() {
@@ -45,14 +63,15 @@ final class UsageStore: ObservableObject {
         updateCheckLoop = nil
     }
 
-    func refresh() {
-        guard !isRefreshing else { return }
+    @discardableResult
+    func refresh() -> Task<Void, Never>? {
+        guard !isRefreshing else { return nil }
         isRefreshing = true
 
-        Task { [weak self] in
+        return Task { [weak self] in
             do {
-                let snapshot = try await CodexUsageService.fetch()
                 guard let self else { return }
+                let snapshot = try await self.fetchSnapshot()
                 self.snapshot = snapshot
                 self.errorMessage = nil
                 self.isRefreshing = false

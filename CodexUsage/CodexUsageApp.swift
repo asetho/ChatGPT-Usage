@@ -19,7 +19,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private var statusItem: NSStatusItem?
     private let popover = NSPopover()
-    private var snapshotObserver: AnyCancellable?
+    private var statusObservers = Set<AnyCancellable>()
 
 #if DEBUG
     private var previewWindow: NSWindow?
@@ -39,6 +39,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         configureStatusItem()
 #endif
         UsageStore.shared.start()
+        NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didWakeNotification)
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.updateStatusItem()
+                UsageStore.shared.refresh()
+            }
+            .store(in: &statusObservers)
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -76,11 +83,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         statusItem = item
         updateStatusItem()
-        snapshotObserver = UsageStore.shared.$snapshot
+        UsageStore.shared.$snapshot.combineLatest(UsageStore.shared.$errorMessage)
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
                 self?.updateStatusItem()
             }
+            .store(in: &statusObservers)
+        Timer.publish(every: 30, on: .main, in: .common).autoconnect()
+            .sink { [weak self] _ in self?.updateStatusItem() }
+            .store(in: &statusObservers)
     }
 
     private func updateStatusItem() {
@@ -89,8 +100,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Let AppKit style the title and template icon together on inactive menu bars.
         button.title = percentage
-        button.toolTip = "ChatGPT weekly usage: \(percentage) remaining. Double-click to open ChatGPT."
-        button.setAccessibilityLabel("ChatGPT weekly usage, \(percentage) remaining")
+        button.toolTip = "\(UsageStore.shared.statusDescription) Double-click to open ChatGPT."
+        button.setAccessibilityLabel(UsageStore.shared.statusDescription)
     }
 
     @objc private func handleStatusItemClick(_ sender: NSStatusBarButton) {
