@@ -17,6 +17,12 @@ public partial class AboutWindow : Window
     private async void CheckForUpdates_Click(object sender, RoutedEventArgs e) =>
         await ((UsageViewModel)DataContext).CheckForUpdatesManuallyAsync();
 
+    private async void InstallUpdate_Click(object sender, RoutedEventArgs e)
+    {
+        if (await ((UsageViewModel)DataContext).PrepareAvailableUpdateAsync())
+            ((App)System.Windows.Application.Current).ExitApplication();
+    }
+
     private void OpenUpdate_Click(object sender, RoutedEventArgs e)
     {
         if (((UsageViewModel)DataContext).UpdateUrl is { } url) ExternalLinkLauncher.TryOpen(url);

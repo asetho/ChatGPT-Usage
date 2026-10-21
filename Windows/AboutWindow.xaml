@@ -20,7 +20,14 @@
 
             <TextBlock Text="{Binding UpdateCheckStatus}" FontSize="12" Foreground="#B4B8C0"
                        TextAlignment="Center" Margin="0,12,0,0" />
-            <Button Content="View available update" Visibility="{Binding UpdateAvailableVisibility}"
+            <Button Content="Update now" Visibility="{Binding InstallUpdateVisibility}" IsEnabled="{Binding CanInstallUpdate}"
+                    Click="InstallUpdate_Click" Padding="8,5" Margin="0,8,0,0" HorizontalAlignment="Center"
+                    Background="#2563A6" Foreground="White" />
+            <TextBlock Text="{Binding UpdateInstallStatus}" Visibility="{Binding UpdateProgressVisibility}"
+                       TextWrapping="Wrap" TextAlignment="Center" Foreground="#B4B8C0" FontSize="12" />
+            <TextBlock Text="{Binding UpdateInstallError}" Visibility="{Binding UpdateInstallErrorVisibility}"
+                       TextWrapping="Wrap" TextAlignment="Center" Foreground="#E9B267" FontSize="12" />
+            <Button Content="View release" Visibility="{Binding UpdateAvailableVisibility}"
                     Click="OpenUpdate_Click" Padding="8,5" Margin="0,8,0,0" HorizontalAlignment="Center"
                     Background="Transparent" BorderThickness="0" Foreground="#60A5FA" />
 

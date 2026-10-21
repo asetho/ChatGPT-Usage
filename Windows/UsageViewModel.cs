@@ -25,6 +25,10 @@ public sealed class UsageViewModel : INotifyPropertyChanged
     private Visibility updateAvailableVisibility = Visibility.Collapsed;
     private Visibility resetExpirationVisibility = Visibility.Collapsed;
     private bool isCheckingForUpdates;
+    private AvailableUpdateInfo? availableUpdate;
+    private bool isInstallingUpdate;
+    private string updateInstallStatus = "";
+    private string updateInstallError = UpdateInstaller.TakePreviousError() ?? "";
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -47,6 +51,12 @@ public sealed class UsageViewModel : INotifyPropertyChanged
     public string UpdateDescription { get => updateDescription; private set => Set(ref updateDescription, value); }
     public string UpdateCheckStatus { get => updateCheckStatus; private set => Set(ref updateCheckStatus, value); }
     public string? UpdateUrl { get => updateUrl; private set => Set(ref updateUrl, value); }
+    public string UpdateInstallStatus { get => updateInstallStatus; private set => Set(ref updateInstallStatus, value); }
+    public string UpdateInstallError => updateInstallError;
+    public bool CanInstallUpdate => availableUpdate?.Package is not null && !isInstallingUpdate;
+    public Visibility InstallUpdateVisibility => availableUpdate?.Package is not null ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility UpdateProgressVisibility => isInstallingUpdate ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility UpdateInstallErrorVisibility => string.IsNullOrEmpty(updateInstallError) ? Visibility.Collapsed : Visibility.Visible;
     public Visibility AdditionalLimitsVisibility { get => additionalLimitsVisibility; private set => Set(ref additionalLimitsVisibility, value); }
     public Visibility TokenUsageVisibility { get => tokenUsageVisibility; private set => Set(ref tokenUsageVisibility, value); }
     public Visibility UpdateAvailableVisibility { get => updateAvailableVisibility; private set => Set(ref updateAvailableVisibility, value); }
@@ -80,6 +90,38 @@ public sealed class UsageViewModel : INotifyPropertyChanged
 
     public Task CheckForUpdatesAsync() => CheckForUpdatesAsync(isManual: false);
 
+    public async Task<bool> PrepareAvailableUpdateAsync()
+    {
+        if (isInstallingUpdate || availableUpdate?.Package is null) return false;
+        isInstallingUpdate = true;
+        updateInstallError = "";
+        NotifyUpdateState();
+        var prepared = false;
+        try
+        {
+            await UpdateInstaller.PrepareAndLaunchAsync(availableUpdate, value => UpdateInstallStatus = value);
+            prepared = true;
+            return true;
+        }
+        catch (Exception error)
+        {
+            updateInstallError = error.Message;
+            UpdateInstallStatus = "";
+            return false;
+        }
+        finally
+        {
+            if (!prepared) isInstallingUpdate = false;
+            NotifyUpdateState();
+        }
+    }
+
+    private void NotifyUpdateState()
+    {
+        foreach (var name in new[] { nameof(CanInstallUpdate), nameof(InstallUpdateVisibility), nameof(UpdateProgressVisibility), nameof(UpdateInstallError), nameof(UpdateInstallErrorVisibility) })
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+    }
+
     public Task CheckForUpdatesManuallyAsync()
     {
         if (isCheckingForUpdates)
@@ -93,12 +135,14 @@ public sealed class UsageViewModel : INotifyPropertyChanged
 
     private async Task CheckForUpdatesAsync(bool isManual)
     {
-        if (isCheckingForUpdates) return;
+        if (isCheckingForUpdates || isInstallingUpdate) return;
 
         isCheckingForUpdates = true;
         try
         {
             var update = await UpdateCheckService.FetchAvailableUpdateAsync(UpdateCheckService.CurrentVersion);
+            availableUpdate = update;
+            NotifyUpdateState();
             if (update is null)
             {
                 UpdateAvailableVisibility = Visibility.Collapsed;
@@ -108,7 +152,7 @@ public sealed class UsageViewModel : INotifyPropertyChanged
                 return;
             }
 
-            UpdateDescription = $"Version {update.Version} · View release";
+            UpdateDescription = $"Version {update.Version}";
             UpdateUrl = update.ReleaseUrl;
             UpdateAvailableVisibility = Visibility.Visible;
             if (isManual) UpdateCheckStatus = $"Version {update.Version} is available.";

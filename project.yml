@@ -24,6 +24,10 @@ targets:
     platform: macOS
     sources:
       - path: CodexUsage
+        excludes:
+          - Resources
+      - path: CodexUsage/Resources
+        buildPhase: resources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.aaronwhippo.CodexUsage

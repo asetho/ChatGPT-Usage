@@ -13,9 +13,12 @@
 		45BEA48195F8A36C72B81BA6 /* UpdateCheckService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD1725493B3AED87F7BF9453 /* UpdateCheckService.swift */; };
 		52CD7CE9F98800C63FA87DA0 /* CodexUsageApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 467BF9B04593D291F69B21E8 /* CodexUsageApp.swift */; };
 		674DEBD684870B42F71599D1 /* UsageStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FB6E14A0C59BBA6E2187465 /* UsageStore.swift */; };
+		8AADDD856E8FE9941EBBCDA0 /* UpdateInstaller.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C00038B95015309DAFEFF1E /* UpdateInstaller.swift */; };
 		914B7692D3684FC6D56A8541 /* UsageModelsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9A375C7CA0E233CE33B904A /* UsageModelsTests.swift */; };
+		A87772E7E1C290DCAB6AEFBA /* install-update.sh in Resources */ = {isa = PBXBuildFile; fileRef = F181B026A83E2786655CDEB7 /* install-update.sh */; };
 		B1113C548A89413E7ADDA1E4 /* CodexUsageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 882860FCA0691759E7DBB565 /* CodexUsageService.swift */; };
 		B8106F07D8879B18DD469DFC /* UsageModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200E2B77592940E7E1D413AF /* UsageModels.swift */; };
+		DCF6CA4E22CFA10F25E14CDE /* UpdateInstallerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AC98B537F4BBCC1FB199B28 /* UpdateInstallerTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -31,16 +34,19 @@
 /* Begin PBXFileReference section */
 		C41A3D9DF3264191820A3212 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
 		0BDE6402EB79CD9981F92671 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		1C00038B95015309DAFEFF1E /* UpdateInstaller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateInstaller.swift; sourceTree = "<group>"; };
 		200E2B77592940E7E1D413AF /* UsageModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageModels.swift; sourceTree = "<group>"; };
 		2FB6E14A0C59BBA6E2187465 /* UsageStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageStore.swift; sourceTree = "<group>"; };
 		3CDC02CFC2B511BAE4567F27 /* CodexUsageTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CodexUsageTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		467BF9B04593D291F69B21E8 /* CodexUsageApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodexUsageApp.swift; sourceTree = "<group>"; };
+		6AC98B537F4BBCC1FB199B28 /* UpdateInstallerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateInstallerTests.swift; sourceTree = "<group>"; };
 		882860FCA0691759E7DBB565 /* CodexUsageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodexUsageService.swift; sourceTree = "<group>"; };
 		B486355A73E39E4E96C76640 /* UsageMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageMenuView.swift; sourceTree = "<group>"; };
 		BCC07F1E75534D479BFD25B6 /* CodexUsage.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CodexUsage.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C9A375C7CA0E233CE33B904A /* UsageModelsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageModelsTests.swift; sourceTree = "<group>"; };
 		CD1725493B3AED87F7BF9453 /* UpdateCheckService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateCheckService.swift; sourceTree = "<group>"; };
 		F09F905C5720E63453AC7184 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		F181B026A83E2786655CDEB7 /* install-update.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = "install-update.sh"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -53,9 +59,11 @@
 				882860FCA0691759E7DBB565 /* CodexUsageService.swift */,
 				0BDE6402EB79CD9981F92671 /* Info.plist */,
 				CD1725493B3AED87F7BF9453 /* UpdateCheckService.swift */,
+				1C00038B95015309DAFEFF1E /* UpdateInstaller.swift */,
 				B486355A73E39E4E96C76640 /* UsageMenuView.swift */,
 				200E2B77592940E7E1D413AF /* UsageModels.swift */,
 				2FB6E14A0C59BBA6E2187465 /* UsageStore.swift */,
+				C95664CE19DF34ACC63DA451 /* Resources */,
 			);
 			path = CodexUsage;
 			sourceTree = "<group>";
@@ -63,6 +71,7 @@
 		3C1617BE4BE5F3026CE37E43 /* CodexUsageTests */ = {
 			isa = PBXGroup;
 			children = (
+				6AC98B537F4BBCC1FB199B28 /* UpdateInstallerTests.swift */,
 				C9A375C7CA0E233CE33B904A /* UsageModelsTests.swift */,
 			);
 			path = CodexUsageTests;
@@ -84,6 +93,14 @@
 				3C1617BE4BE5F3026CE37E43 /* CodexUsageTests */,
 				87DED5F9177F96E9EC13B0E5 /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		C95664CE19DF34ACC63DA451 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				F181B026A83E2786655CDEB7 /* install-update.sh */,
+			);
+			path = Resources;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -168,6 +185,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				3BC0BF8E0D6FF89D11569728 /* Assets.xcassets in Resources */,
+				A87772E7E1C290DCAB6AEFBA /* install-update.sh in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -178,6 +196,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DCF6CA4E22CFA10F25E14CDE /* UpdateInstallerTests.swift in Sources */,
 				914B7692D3684FC6D56A8541 /* UsageModelsTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -190,6 +209,7 @@
 				52CD7CE9F98800C63FA87DA0 /* CodexUsageApp.swift in Sources */,
 				B1113C548A89413E7ADDA1E4 /* CodexUsageService.swift in Sources */,
 				45BEA48195F8A36C72B81BA6 /* UpdateCheckService.swift in Sources */,
+				8AADDD856E8FE9941EBBCDA0 /* UpdateInstaller.swift in Sources */,
 				0C7057EB4BE43F137A0EFFE4 /* UsageMenuView.swift in Sources */,
 				B8106F07D8879B18DD469DFC /* UsageModels.swift in Sources */,
 				674DEBD684870B42F71599D1 /* UsageStore.swift in Sources */,

@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 
 @MainActor
@@ -10,6 +11,9 @@ final class UsageStore: ObservableObject {
     @Published private(set) var availableUpdate: AvailableUpdate?
     @Published private(set) var isCheckingForUpdates = false
     @Published private(set) var updateCheckStatus: String?
+    @Published private(set) var isInstallingUpdate = false
+    @Published private(set) var updateInstallStatus: String?
+    @Published private(set) var updateInstallError: String?
 
     private var refreshLoop: Task<Void, Never>?
     private var updateCheckLoop: Task<Void, Never>?
@@ -21,6 +25,7 @@ final class UsageStore: ObservableObject {
         self.fetchSnapshot = fetchSnapshot ?? {
             try await CodexUsageService.fetch(executablePath: AppSettings.shared.codexExecutablePath)
         }
+        updateInstallError = UpdateInstaller.takePreviousError()
     }
 
     var isStale: Bool {
@@ -91,6 +96,23 @@ final class UsageStore: ObservableObject {
         }
     }
 
+    func installAvailableUpdate() {
+        guard !isInstallingUpdate, let update = availableUpdate else { return }
+        isInstallingUpdate = true
+        updateInstallError = nil
+        Task { [weak self] in
+            guard let self else { return }
+            do {
+                try await UpdateInstaller.prepareAndLaunch(update) { self.updateInstallStatus = $0 }
+                NSApplication.shared.terminate(nil)
+            } catch {
+                self.updateInstallError = error.localizedDescription
+                self.updateInstallStatus = nil
+                self.isInstallingUpdate = false
+            }
+        }
+    }
+
     private func startUpdateChecks() {
         guard updateCheckLoop == nil else { return }
 
@@ -116,7 +138,7 @@ final class UsageStore: ObservableObject {
         currentVersion: String? = nil,
         isManual: Bool
     ) async {
-        guard !isCheckingForUpdates else { return }
+        guard !isCheckingForUpdates, !isInstallingUpdate else { return }
         isCheckingForUpdates = true
         defer { isCheckingForUpdates = false }
 
@@ -128,7 +150,7 @@ final class UsageStore: ObservableObject {
             let update = try await UpdateCheckService.fetchAvailableUpdate(
                 currentVersion: installedVersion
             )
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, !isInstallingUpdate else { return }
             availableUpdate = update
             if isManual {
                 updateCheckStatus = update.map { "Version \($0.version) is available." }

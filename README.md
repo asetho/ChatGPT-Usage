@@ -78,7 +78,9 @@ For platform-specific unsigned-app warnings and checksum guidance, read [UNSIGNE
 
 The optional Windows Codex installation downloads and runs OpenAI's current installer over HTTPS, so its contents can change independently of this app. Only set `CODEX_EXECUTABLE` to a binary you trust.
 
-Both apps check this repository's latest published GitHub release at launch and every 12 hours while running. When a newer version exists, the popup provides a link to its release page; failed checks are silent.
+Both apps check this repository's latest published GitHub release at launch and every 12 hours while running. When a newer version has matching packages and checksums, choose **Update now** to download, verify, install, and reopen the app. The Mac app must be in a writable Applications folder; Windows must have been installed with this project's installer. Updates preserve app settings and sign-in state. **View release** is available for manual installation; failed update checks are silent.
+
+Installation starts only when you choose **Update now**. Packages are checked against GitHub's SHA256 asset digests and the accompanying checksum file. These checks detect mismatched downloads; they do not verify a publisher signature. Normal macOS and Windows security approval may still be required. If a Mac update cannot launch, the helper restores the previous app. Existing versions without **Update now** need one manual installation of a build containing this feature.
 
 See [Privacy](PRIVACY.md) for local data and subprocess behavior, and [Security](SECURITY.md) for reporting concerns. The app uses experimental Codex API capabilities; compatibility can change when Codex updates. Usage figures may be unavailable or stale and should be confirmed in the official dashboard.
 

@@ -38,7 +38,7 @@ Name: "{group}\MIT License"; Filename: "{app}\LICENSE"
 Type: files; Name: "{userprograms}\ChatGPT Usage.lnk"
 
 [Registry]
-Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "ChatGPT Usage"; ValueData: """{app}\{#MyAppExeName}"""; Flags: uninsdeletevalue
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "ChatGPT Usage"; ValueData: """{app}\{#MyAppExeName}"""; Flags: uninsdeletevalue; Check: ShouldEnableStartup
 Root: HKCU; Subkey: "Software\asetho\ChatGPT Usage"; ValueType: none; Flags: uninsdeletekey
 
 [Run]
@@ -76,9 +76,21 @@ begin
     (FileSearch('codex.cmd', SearchPath) <> '');
 end;
 
+function IsCompanionUpdate: Boolean;
+begin
+  Result := ExpandConstant('{param:COMPANIONUPDATE|0}') = '1';
+end;
+
+function ShouldEnableStartup: Boolean;
+begin
+  Result := (not IsCompanionUpdate) or RegValueExists(HKCU,
+    'Software\Microsoft\Windows\CurrentVersion\Run', 'ChatGPT Usage');
+end;
+
 procedure InitializeWizard;
 begin
-  if not IsCodexCliInstalled then
+  { An app update must not install a separate prerequisite without a new choice. }
+  if (not IsCompanionUpdate) and (not IsCodexCliInstalled) then
   begin
     CodexInstallPage := CreateInputOptionPage(
       wpSelectDir,
