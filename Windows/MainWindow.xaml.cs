@@ -123,6 +123,12 @@ public partial class MainWindow : Window
     private void OpenReserveGuide_Click(object sender, RoutedEventArgs e) =>
         ExternalLinkLauncher.TryOpen("https://help-lb.openai.com/en/articles/20001499-luna-reserve-in-codex-and-chatgpt-work");
 
+    private async void InstallUpdate_Click(object sender, RoutedEventArgs e)
+    {
+        if (await ((UsageViewModel)DataContext).PrepareAvailableUpdateAsync())
+            ((App)System.Windows.Application.Current).ExitApplication();
+    }
+
     private void OpenUpdate_Click(object sender, RoutedEventArgs e)
     {
         if (((UsageViewModel)DataContext).UpdateUrl is { } url)

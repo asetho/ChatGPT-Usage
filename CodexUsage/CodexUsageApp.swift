@@ -26,6 +26,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 #endif
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        UpdateInstaller.recordSuccessfulLaunch()
         ProcessInfo.processInfo.disableAutomaticTermination("ChatGPT Usage runs in the menu bar")
 #if DEBUG
         if ProcessInfo.processInfo.environment["CODEX_USAGE_PREVIEW"] == "1" {

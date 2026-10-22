@@ -205,39 +205,44 @@ struct UsageMenuView: View {
     }
 
     private func updateBanner(_ update: AvailableUpdate) -> some View {
-        Button {
-            NSWorkspace.shared.open(update.releaseURL)
-        } label: {
+        VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 10) {
                 Image(systemName: "arrow.down.circle.fill")
                     .font(.system(size: 18))
                     .foregroundStyle(.blue)
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Update available")
+                    Text(store.isInstallingUpdate ? "Updating…" : "Update available")
                         .font(.callout.weight(.semibold))
-                    Text("Version \(update.version) · View release")
+                    Text(store.updateInstallStatus ?? "Version \(update.version)")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
 
                 Spacer()
 
-                Image(systemName: "arrow.up.forward")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                if store.isInstallingUpdate { ProgressView().controlSize(.small) }
             }
-            .contentShape(Rectangle())
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
+            HStack(spacing: 14) {
+                if update.package != nil {
+                    Button("Update now") { store.installAvailableUpdate() }
+                        .disabled(store.isInstallingUpdate)
+                        .accessibilityHint("Downloads the update, installs it, and reopens the app")
+                }
+                Link("View release", destination: update.releaseURL)
+            }.font(.caption)
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Update available, version \(update.version)")
-        .accessibilityHint("Opens the GitHub release page")
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .accessibilityElement(children: .contain)
     }
 
     private var footer: some View {
         VStack(alignment: .leading, spacing: 8) {
+            if let error = store.updateInstallError {
+                Text(error).font(.caption).foregroundStyle(.orange)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             if let fetchedAt = store.snapshot?.fetchedAt {
                 TimelineView(.periodic(from: .now, by: 30)) { context in
                     HStack(spacing: 3) {
@@ -542,8 +547,21 @@ private struct AboutView: View {
             }
 
             if let update = store.availableUpdate {
-                Link("View version \(update.version)", destination: update.releaseURL)
-                    .font(.caption)
+                HStack {
+                    if update.package != nil {
+                        Button(store.isInstallingUpdate ? "Updating…" : "Update now") { store.installAvailableUpdate() }
+                            .disabled(store.isInstallingUpdate)
+                    }
+                    Link("View version \(update.version)", destination: update.releaseURL)
+                }.font(.caption)
+            }
+            if let error = store.updateInstallError {
+                Text(error).font(.caption).foregroundStyle(.orange)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            if store.isInstallingUpdate, let status = store.updateInstallStatus {
+                Text(status).font(.caption).foregroundStyle(.secondary)
             }
 
             Link(destination: repositoryURL) {

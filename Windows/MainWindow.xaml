@@ -9,27 +9,30 @@
         <DockPanel LastChildFill="True">
             <StackPanel x:Name="FooterPanel" DockPanel.Dock="Bottom" Margin="0,8,0,0"
                         SizeChanged="LayoutPart_SizeChanged">
-                <Button Visibility="{Binding UpdateAvailableVisibility}" Click="OpenUpdate_Click"
-                        Padding="0" Margin="0,0,0,12" HorizontalContentAlignment="Stretch"
-                        Background="Transparent" BorderThickness="0" Foreground="#F0F1F4"
-                        AutomationProperties.Name="Update available"
-                        AutomationProperties.HelpText="Opens the GitHub release page in the default browser">
+                <StackPanel Visibility="{Binding UpdateAvailableVisibility}" Margin="0,0,0,12">
                     <Border Background="#202A38" BorderBrush="#3B82F6" BorderThickness="1" CornerRadius="8" Padding="10,8">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Text="↓" Foreground="#60A5FA" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center" />
-                            <StackPanel Grid.Column="1" Margin="9,0">
+                        <StackPanel>
+                            <StackPanel>
                                 <TextBlock Text="Update available" FontSize="14" FontWeight="SemiBold" Foreground="#F0F1F4" />
                                 <TextBlock Text="{Binding UpdateDescription}" FontSize="12" Foreground="#B4B8C0" />
                             </StackPanel>
-                            <TextBlock Grid.Column="2" Text="↗" Foreground="#B4B8C0" VerticalAlignment="Center" />
-                        </Grid>
+                            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                <Button Content="Update now" Click="InstallUpdate_Click" IsEnabled="{Binding CanInstallUpdate}"
+                                        Visibility="{Binding InstallUpdateVisibility}" Padding="6,3" Margin="0,0,10,0"
+                                        Background="#2563A6" Foreground="White"
+                                        AutomationProperties.HelpText="Downloads the update, installs it, and reopens the app" />
+                                <Button Content="View release" Click="OpenUpdate_Click" Padding="0" Background="Transparent"
+                                        Foreground="#9BC5FF" />
+                            </StackPanel>
+                            <StackPanel Visibility="{Binding UpdateProgressVisibility}" Margin="0,8,0,0">
+                                <TextBlock Text="{Binding UpdateInstallStatus}" Foreground="#B4B8C0" FontSize="12" TextWrapping="Wrap" />
+                                <ProgressBar IsIndeterminate="True" Height="3" Margin="0,6,0,0" />
+                            </StackPanel>
+                        </StackPanel>
                     </Border>
-                </Button>
+                </StackPanel>
+                <TextBlock Text="{Binding UpdateInstallError}" Visibility="{Binding UpdateInstallErrorVisibility}"
+                           Foreground="#E9B267" TextWrapping="Wrap" FontSize="12" Margin="0,0,0,12" />
 
                 <Separator Background="#414650" />
                 <Grid Margin="0,12,0,0">

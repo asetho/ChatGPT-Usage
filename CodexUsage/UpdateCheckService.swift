@@ -3,6 +3,31 @@ import Foundation
 struct AvailableUpdate: Equatable {
     let version: String
     let releaseURL: URL
+    var package: UpdatePackage? = nil
+}
+
+struct UpdateAsset: Decodable, Equatable {
+    let name: String
+    let downloadURL: URL
+    let size: Int64
+    let digest: String?
+
+    enum CodingKeys: String, CodingKey {
+        case name, size, digest
+        case downloadURL = "browser_download_url"
+    }
+
+    var sha256: String? {
+        guard let digest, digest.hasPrefix("sha256:") else { return nil }
+        let value = String(digest.dropFirst(7))
+        guard value.count == 64, value.allSatisfy({ $0.isASCII && $0.isHexDigit }) else { return nil }
+        return value.lowercased()
+    }
+}
+
+struct UpdatePackage: Equatable {
+    let installer: UpdateAsset
+    let checksum: UpdateAsset
 }
 
 enum UpdateCheckService {
@@ -34,22 +59,49 @@ enum UpdateCheckService {
               let latestVersion = SemanticVersion(release.tagName),
               let installedVersion = SemanticVersion(currentVersion),
               latestVersion > installedVersion,
-              release.htmlURL.scheme == "https",
-              release.htmlURL.host == "github.com" else {
+              release.draft != true, release.prerelease != true,
+              isReleaseURL(release.htmlURL, path: "/asetho/ChatGPT-Usage/releases/tag/\(release.tagName)") else {
             return nil
         }
 
-        return AvailableUpdate(version: latestVersion.description, releaseURL: release.htmlURL)
+        let name = "ChatGPTUsage-\(latestVersion).dmg"
+        let package = package(from: release.assets ?? [], name: name, tag: release.tagName)
+        return AvailableUpdate(version: latestVersion.description, releaseURL: release.htmlURL, package: package)
+    }
+
+    static func isReleaseURL(_ url: URL, path: String) -> Bool {
+        url.scheme == "https" && url.host == "github.com" && (url.port == nil || url.port == 443)
+            && url.user == nil && url.password == nil && url.query == nil && url.fragment == nil
+            && url.path == path
+    }
+
+    private static func package(from assets: [UpdateAsset], name: String, tag: String) -> UpdatePackage? {
+        func asset(_ name: String, maximumSize: Int64) -> UpdateAsset? {
+            let matches = assets.filter { $0.name == name }
+            guard matches.count == 1, let value = matches.first,
+                  value.size > 0, value.size <= maximumSize, value.sha256 != nil,
+                  isReleaseURL(value.downloadURL, path: "/asetho/ChatGPT-Usage/releases/download/\(tag)/\(name)") else {
+                return nil
+            }
+            return value
+        }
+        guard let installer = asset(name, maximumSize: 512 * 1_024 * 1_024),
+              let checksum = asset(name + ".sha256", maximumSize: 4_096) else { return nil }
+        return UpdatePackage(installer: installer, checksum: checksum)
     }
 }
 
 private struct GitHubRelease: Decodable {
     let tagName: String
     let htmlURL: URL
+    let assets: [UpdateAsset]?
+    let draft: Bool?
+    let prerelease: Bool?
 
     enum CodingKeys: String, CodingKey {
         case tagName = "tag_name"
         case htmlURL = "html_url"
+        case assets, draft, prerelease
     }
 }
 
@@ -66,6 +118,7 @@ private struct SemanticVersion: Comparable, CustomStringConvertible {
 
         let components = normalized.split(separator: ".", omittingEmptySubsequences: false)
         guard components.count == 3,
+              components.allSatisfy({ !$0.isEmpty && $0.allSatisfy({ $0.isASCII && $0.isNumber }) }),
               let major = Int(components[0]), major >= 0,
               let minor = Int(components[1]), minor >= 0,
               let patch = Int(components[2]), patch >= 0 else {
