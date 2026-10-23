@@ -1,3 +1,4 @@
+using Microsoft.Win32;
 using System.Windows;
 
 namespace ChatGPTUsage.Windows;
@@ -5,6 +6,8 @@ namespace ChatGPTUsage.Windows;
 public partial class MainWindow : Window
 {
     private const double ScreenMargin = 16;
+    private const string SettingsRegistryPath = @"Software\asetho\ChatGPT Usage";
+    private const string TokenUsageExpandedValue = "TokenUsageExpanded";
     private bool canClose;
     private bool heightFitQueued;
     private bool isFittingHeight;
@@ -14,6 +17,15 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         DataContext = usage;
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(SettingsRegistryPath);
+            TokenUsageExpander.IsExpanded = key?.GetValue(TokenUsageExpandedValue) is 1;
+        }
+        catch
+        {
+            // Keep the default collapsed state if preferences cannot be read.
+        }
 
         var availableHeight = Math.Max(1, SystemParameters.WorkArea.Height - (ScreenMargin * 2));
         MaxHeight = availableHeight;
@@ -50,7 +62,22 @@ public partial class MainWindow : Window
 
     private void LayoutPart_SizeChanged(object sender, SizeChangedEventArgs e) => QueueHeightFit();
 
-    private void Disclosure_Changed(object sender, RoutedEventArgs e) => QueueHeightFit();
+    private void Disclosure_Changed(object sender, RoutedEventArgs e)
+    {
+        if (sender == TokenUsageExpander && IsLoaded)
+        {
+            try
+            {
+                using var key = Registry.CurrentUser.CreateSubKey(SettingsRegistryPath);
+                key.SetValue(TokenUsageExpandedValue, TokenUsageExpander.IsExpanded ? 1 : 0, RegistryValueKind.DWord);
+            }
+            catch
+            {
+                // Disclosure controls still work if preferences cannot be saved.
+            }
+        }
+        QueueHeightFit();
+    }
 
     private void QueueHeightFit()
     {
