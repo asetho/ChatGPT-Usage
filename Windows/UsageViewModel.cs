@@ -11,6 +11,7 @@ public sealed class UsageViewModel : INotifyPropertyChanged
     private bool lastRefreshFailed;
     private DateTimeOffset? lastSuccessfulRefresh;
     private readonly Func<Task<UsageSnapshot>> fetchSnapshot;
+    private readonly Func<Task<AvailableUpdateInfo?>> fetchUpdate;
     private string weeklyRemaining = "—";
     private string weeklyReset = "—";
     private string resetTitle = "Open ChatGPT Usage";
@@ -25,6 +26,7 @@ public sealed class UsageViewModel : INotifyPropertyChanged
     private Visibility updateAvailableVisibility = Visibility.Collapsed;
     private Visibility resetExpirationVisibility = Visibility.Collapsed;
     private bool isCheckingForUpdates;
+    private bool isUpToDate;
     private AvailableUpdateInfo? availableUpdate;
     private bool isInstallingUpdate;
     private string updateInstallStatus = "";
@@ -34,9 +36,10 @@ public sealed class UsageViewModel : INotifyPropertyChanged
 
     public UsageViewModel() : this(() => CodexUsageService.FetchAsync()) { }
 
-    internal UsageViewModel(Func<Task<UsageSnapshot>> fetchSnapshot)
+    internal UsageViewModel(Func<Task<UsageSnapshot>> fetchSnapshot, Func<Task<AvailableUpdateInfo?>>? fetchUpdate = null)
     {
         this.fetchSnapshot = fetchSnapshot;
+        this.fetchUpdate = fetchUpdate ?? (() => UpdateCheckService.FetchAvailableUpdateAsync(UpdateCheckService.CurrentVersion));
     }
 
     public ObservableCollection<LimitDisplay> AdditionalLimits { get; } = [];
@@ -49,7 +52,21 @@ public sealed class UsageViewModel : INotifyPropertyChanged
     public string ErrorMessage { get => errorMessage; private set => Set(ref errorMessage, value); }
     public string RefreshStatus { get => refreshStatus; private set => Set(ref refreshStatus, value); }
     public string UpdateDescription { get => updateDescription; private set => Set(ref updateDescription, value); }
-    public string UpdateCheckStatus { get => updateCheckStatus; private set => Set(ref updateCheckStatus, value); }
+    public string UpdateCheckStatus
+    {
+        get => updateCheckStatus;
+        private set
+        {
+            Set(ref updateCheckStatus, value);
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(UpdateCheckStatusVisibility)));
+        }
+    }
+    public Visibility UpdateCheckStatusVisibility => string.IsNullOrEmpty(UpdateCheckStatus) ? Visibility.Collapsed : Visibility.Visible;
+    public bool IsCheckingForUpdates => isCheckingForUpdates;
+    public bool IsUpToDate { get => isUpToDate; private set => Set(ref isUpToDate, value); }
+    public bool CanCheckForUpdates => !isCheckingForUpdates && !isInstallingUpdate;
+    public string UpdateCheckAccessibilityStatus => isCheckingForUpdates ? "Checking" : IsUpToDate ? "Up to date" : UpdateCheckStatus;
+    public string UpdateReleaseTitle => string.IsNullOrEmpty(UpdateDescription) ? "View release" : $"View {UpdateDescription.ToLowerInvariant()}";
     public string? UpdateUrl { get => updateUrl; private set => Set(ref updateUrl, value); }
     public string UpdateInstallStatus { get => updateInstallStatus; private set => Set(ref updateInstallStatus, value); }
     public string UpdateInstallError => updateInstallError;
@@ -118,19 +135,21 @@ public sealed class UsageViewModel : INotifyPropertyChanged
 
     private void NotifyUpdateState()
     {
-        foreach (var name in new[] { nameof(CanInstallUpdate), nameof(InstallUpdateVisibility), nameof(UpdateProgressVisibility), nameof(UpdateInstallError), nameof(UpdateInstallErrorVisibility) })
+        foreach (var name in new[] { nameof(CanInstallUpdate), nameof(InstallUpdateVisibility), nameof(UpdateProgressVisibility), nameof(UpdateInstallError), nameof(UpdateInstallErrorVisibility), nameof(CanCheckForUpdates), nameof(UpdateReleaseTitle), nameof(IsCheckingForUpdates), nameof(UpdateCheckAccessibilityStatus) })
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
 
     public Task CheckForUpdatesManuallyAsync()
     {
-        if (isCheckingForUpdates)
-        {
-            UpdateCheckStatus = "An update check is already in progress.";
-            return Task.CompletedTask;
-        }
-        UpdateCheckStatus = "Checking for updates…";
+        if (!CanCheckForUpdates) return Task.CompletedTask;
+        UpdateCheckStatus = "";
         return CheckForUpdatesAsync(isManual: true);
+    }
+
+    public void ClearUpdateCheckConfirmation()
+    {
+        IsUpToDate = false;
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(UpdateCheckAccessibilityStatus)));
     }
 
     private async Task CheckForUpdatesAsync(bool isManual)
@@ -138,9 +157,11 @@ public sealed class UsageViewModel : INotifyPropertyChanged
         if (isCheckingForUpdates || isInstallingUpdate) return;
 
         isCheckingForUpdates = true;
+        IsUpToDate = false;
+        NotifyUpdateState();
         try
         {
-            var update = await UpdateCheckService.FetchAvailableUpdateAsync(UpdateCheckService.CurrentVersion);
+            var update = await fetchUpdate();
             availableUpdate = update;
             NotifyUpdateState();
             if (update is null)
@@ -148,7 +169,7 @@ public sealed class UsageViewModel : INotifyPropertyChanged
                 UpdateAvailableVisibility = Visibility.Collapsed;
                 UpdateDescription = "";
                 UpdateUrl = null;
-                if (isManual) UpdateCheckStatus = "You’re up to date.";
+                if (isManual) IsUpToDate = true;
                 return;
             }
 
@@ -165,6 +186,7 @@ public sealed class UsageViewModel : INotifyPropertyChanged
         finally
         {
             isCheckingForUpdates = false;
+            NotifyUpdateState();
         }
     }
 

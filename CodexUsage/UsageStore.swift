@@ -10,6 +10,7 @@ final class UsageStore: ObservableObject {
     @Published private(set) var errorMessage: String?
     @Published private(set) var availableUpdate: AvailableUpdate?
     @Published private(set) var isCheckingForUpdates = false
+    @Published private(set) var isUpToDate = false
     @Published private(set) var updateCheckStatus: String?
     @Published private(set) var isInstallingUpdate = false
     @Published private(set) var updateInstallStatus: String?
@@ -90,10 +91,15 @@ final class UsageStore: ObservableObject {
 
     func checkForUpdatesManually() {
         guard !isCheckingForUpdates else { return }
-        updateCheckStatus = "Checking for updates…"
+        isUpToDate = false
+        updateCheckStatus = nil
         Task { [weak self] in
             await self?.checkForUpdates(isManual: true)
         }
+    }
+
+    func clearUpdateCheckConfirmation() {
+        isUpToDate = false
     }
 
     func installAvailableUpdate() {
@@ -140,6 +146,7 @@ final class UsageStore: ObservableObject {
     ) async {
         guard !isCheckingForUpdates, !isInstallingUpdate else { return }
         isCheckingForUpdates = true
+        isUpToDate = false
         defer { isCheckingForUpdates = false }
 
         let installedVersion = currentVersion ?? (Bundle.main.object(
@@ -153,8 +160,8 @@ final class UsageStore: ObservableObject {
             guard !Task.isCancelled, !isInstallingUpdate else { return }
             availableUpdate = update
             if isManual {
+                isUpToDate = update == nil
                 updateCheckStatus = update.map { "Version \($0.version) is available." }
-                    ?? "You’re up to date."
             }
         } catch {
             if isManual {
