@@ -6,6 +6,8 @@ struct UsageMenuView: View {
     @ObservedObject private var settings = AppSettings.shared
     @State private var isShowingAbout = false
     @State private var isShowingSettings = false
+    @State private var isAdditionalLimitsExpanded = false
+    @AppStorage("tokenUsageExpanded") private var isTokenUsageExpanded = false
 
     private let usageDashboardURL = URL(string: "https://chatgpt.com/settings/usage?tab=overview")!
 
@@ -123,7 +125,7 @@ struct UsageMenuView: View {
 
                 VStack(spacing: 8) {
                     if !snapshot.additionalRateLimits.isEmpty {
-                        ExpandableSection("Additional limits") {
+                        ExpandableSection("Additional limits", isExpanded: $isAdditionalLimitsExpanded) {
                             VStack(spacing: 8) {
                                 ForEach(snapshot.additionalRateLimits) { limit in
                                     AdditionalLimitView(limit: limit)
@@ -133,7 +135,7 @@ struct UsageMenuView: View {
                     }
 
                     if let usage = snapshot.accountUsage {
-                        ExpandableSection("Token usage") {
+                        ExpandableSection("Token usage", isExpanded: $isTokenUsageExpanded) {
                             VStack(spacing: 7) {
                                 DetailRow(title: "Today", value: UsageFormatters.tokenCount(snapshot.todayTokens))
                                 DetailRow(title: "Lifetime", value: UsageFormatters.tokenCount(usage.summary.lifetimeTokens))
@@ -377,10 +379,11 @@ private struct ExpandableSection<Content: View>: View {
     let title: String
     @ViewBuilder let content: () -> Content
 
-    @State private var isExpanded = false
+    @Binding private var isExpanded: Bool
 
-    init(_ title: String, @ViewBuilder content: @escaping () -> Content) {
+    init(_ title: String, isExpanded: Binding<Bool>, @ViewBuilder content: @escaping () -> Content) {
         self.title = title
+        self._isExpanded = isExpanded
         self.content = content
     }
 

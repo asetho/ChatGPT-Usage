@@ -157,7 +157,7 @@
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
                     </Expander>
-                    <Expander Header="Token usage" Visibility="{Binding TokenUsageVisibility}" Foreground="#F0F1F4" FontSize="16"
+                    <Expander x:Name="TokenUsageExpander" Header="Token usage" Visibility="{Binding TokenUsageVisibility}" Foreground="#F0F1F4" FontSize="16"
                               Expanded="Disclosure_Changed" Collapsed="Disclosure_Changed">
                         <ItemsControl ItemsSource="{Binding TokenUsage}" Margin="18,8,0,0">
                             <ItemsControl.ItemTemplate>
