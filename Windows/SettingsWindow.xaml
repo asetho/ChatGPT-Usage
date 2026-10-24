@@ -1,0 +1,64 @@
+<Window x:Class="ChatGPTUsage.Windows.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:ChatGPTUsage.Windows"
+        Title="Settings" Width="350" SizeToContent="Height" ResizeMode="NoResize" WindowStyle="None"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False" Topmost="True"
+        Background="Transparent" AllowsTransparency="True" Loaded="Window_Loaded" SizeChanged="Window_SizeChanged">
+    <Border Background="#14171D" BorderBrush="#414650" BorderThickness="1" CornerRadius="12" Padding="14">
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel>
+            <TextBlock Text="Settings" FontSize="16" FontWeight="SemiBold" Foreground="#F0F1F4" Margin="0,0,0,10" />
+            <CheckBox x:Name="LaunchAtLoginCheckBox" Content="Launch at login" Foreground="#E6E8EE"
+                      Click="LaunchAtLogin_Click" AutomationProperties.Name="Launch at login" />
+            <TextBlock x:Name="LoginError" Visibility="Collapsed" TextWrapping="Wrap" FontSize="12" Foreground="#E9B267" Margin="0,6,0,0" />
+            <Button x:Name="StartupSettingsButton" Content="Open Startup Settings" Visibility="Collapsed"
+                    Click="StartupSettings_Click" HorizontalAlignment="Left" Margin="0,6,0,0" Padding="6,4" Foreground="#E6E8EE" Background="#252A33" />
+            <Separator Background="#414650" Margin="0,10" />
+            <TextBlock Text="Codex" FontSize="13" FontWeight="SemiBold" Foreground="#F0F1F4" />
+            <TextBlock x:Name="CodexDetectionText" FontSize="12" Foreground="#B4B8C0" Margin="0,4,0,0" />
+            <TextBlock x:Name="CodexPathText" FontSize="12" Foreground="#B4B8C0" TextWrapping="Wrap" MaxHeight="48" TextTrimming="CharacterEllipsis" Margin="0,3,0,0" />
+            <StackPanel Orientation="Horizontal" Margin="0,7,0,0">
+                <Button Content="Choose…" Click="ChooseCodex_Click" Padding="7,4" Background="#252A33" Foreground="#F0F1F4" />
+                <Button x:Name="AutomaticCodexButton" Content="Use Automatic" Click="AutomaticCodex_Click" Padding="7,4" Margin="6,0,0,0" Background="#252A33" Foreground="#F0F1F4" />
+            </StackPanel>
+            <TextBlock x:Name="CodexError" Visibility="Collapsed" TextWrapping="Wrap" FontSize="12" Foreground="#E9B267" Margin="0,6,0,0" />
+            <Separator Background="#414650" Margin="0,10" />
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                <Image Source="/ChatGPTUsage.Windows;component/Assets/ChatGPTUsage-small.png" Width="40" Height="40" Stretch="Uniform" Margin="0,0,10,0" />
+                <StackPanel Grid.Column="1">
+                    <TextBlock Text="ChatGPT Usage" FontSize="14" FontWeight="SemiBold" Foreground="#F0F1F4" />
+                    <TextBlock x:Name="VersionText" FontSize="12" Foreground="#B4B8C0" Margin="0,3,0,0" />
+                    <TextBlock Text="© 2026 asetho™" FontSize="12" Foreground="#858B96" Margin="0,3,0,0" />
+                </StackPanel>
+                <Button Grid.Column="2" Click="OpenGitHub_Click" Width="32" Height="32" Padding="6" Background="Transparent"
+                        BorderThickness="0" Foreground="#F0F1F4" Cursor="Hand" ToolTip="Open ChatGPT Usage on GitHub"
+                        AutomationProperties.Name="Open ChatGPT Usage on GitHub">
+                    <local:SymbolIcon Kind="GitHub" Width="20" Height="20" Foreground="#F0F1F4" />
+                </Button>
+            </Grid>
+            <TextBlock Text="{Binding UpdateCheckStatus}" Visibility="{Binding UpdateCheckStatusVisibility}"
+                       FontSize="12" Foreground="#B4B8C0" TextWrapping="Wrap" Margin="0,10,0,0" />
+            <StackPanel Orientation="Horizontal" Visibility="{Binding UpdateAvailableVisibility}" Margin="0,8,0,0">
+                <Button Content="Update now" Visibility="{Binding InstallUpdateVisibility}" IsEnabled="{Binding CanInstallUpdate}"
+                        Click="InstallUpdate_Click" Padding="7,4" Background="#2563A6" Foreground="White" Margin="0,0,8,0" />
+                <Button Content="{Binding UpdateReleaseTitle}" Click="OpenUpdate_Click" Padding="0,4" Background="Transparent" BorderThickness="0" Foreground="#60A5FA" />
+            </StackPanel>
+            <TextBlock Text="{Binding UpdateInstallStatus}" Visibility="{Binding UpdateProgressVisibility}" TextWrapping="Wrap" Foreground="#B4B8C0" FontSize="12" Margin="0,8,0,0" />
+            <TextBlock Text="{Binding UpdateInstallError}" Visibility="{Binding UpdateInstallErrorVisibility}" TextWrapping="Wrap" Foreground="#E9B267" FontSize="12" Margin="0,8,0,0" />
+            <Grid Margin="0,10,0,0">
+                <Button Click="CheckForUpdates_Click" IsEnabled="{Binding CanCheckForUpdates}" Padding="8,6" HorizontalAlignment="Left"
+                        Background="#252A33" Foreground="#F0F1F4" AutomationProperties.Name="Check for Updates"
+                        AutomationProperties.HelpText="{Binding UpdateCheckAccessibilityStatus}">
+                    <StackPanel Orientation="Horizontal">
+                        <local:UpdateCheckIcon IsChecking="{Binding IsCheckingForUpdates}" IsUpToDate="{Binding IsUpToDate}" Margin="0,0,7,0" />
+                        <TextBlock Text="Check for Updates" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+                <Button Content="Done" Click="Done_Click" Padding="12,6" HorizontalAlignment="Right" IsDefault="True" IsCancel="True" Background="#1677EB" Foreground="White" />
+            </Grid>
+        </StackPanel>
+        </ScrollViewer>
+    </Border>
+</Window>

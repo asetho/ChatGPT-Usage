@@ -16,5 +16,9 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Resource Include="Assets\ChatGPTUsage-small.png" />
+    <EmbeddedResource Include="../CodexUsage/Assets.xcassets/Lucide*.imageset/*.svg;../CodexUsage/Assets.xcassets/UsageGauge.imageset/*.svg;../CodexUsage/Assets.xcassets/GitHubMark.imageset/*.svg">
+      <LogicalName>Lucide.%(Filename).svg</LogicalName>
+    </EmbeddedResource>
+    <Content Include="../CodexUsage/Resources/Lucide-LICENSE.txt" Link="Lucide-LICENSE.txt" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

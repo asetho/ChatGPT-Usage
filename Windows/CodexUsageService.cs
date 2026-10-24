@@ -163,8 +163,9 @@ internal static class CodexUsageService
         await writer.FlushAsync();
     }
 
-    private static string FindExecutable()
+    internal static string FindExecutable()
     {
+        if (AppSettings.CodexExecutablePath is { } selected) return selected;
         var configured = Environment.GetEnvironmentVariable("CODEX_EXECUTABLE");
         if (!string.IsNullOrWhiteSpace(configured) && File.Exists(configured)) return configured;
 

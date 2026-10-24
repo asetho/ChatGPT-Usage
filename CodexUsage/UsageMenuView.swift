@@ -4,7 +4,6 @@ import SwiftUI
 struct UsageMenuView: View {
     @EnvironmentObject private var store: UsageStore
     @ObservedObject private var settings = AppSettings.shared
-    @State private var isShowingAbout = false
     @State private var isShowingSettings = false
     @State private var isAdditionalLimitsExpanded = false
     @AppStorage("tokenUsageExpanded") private var isTokenUsageExpanded = false
@@ -51,7 +50,11 @@ struct UsageMenuView: View {
 
     private var header: some View {
         HStack(spacing: 10) {
-            Image(systemName: "gauge.with.dots.needle.50percent")
+            Image("UsageGauge")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 20, height: 20)
+                .accessibilityHidden(true)
                 .font(.system(size: 18, weight: .medium))
                 .foregroundStyle(.secondary)
 
@@ -66,16 +69,16 @@ struct UsageMenuView: View {
             }
 
             Button {
-                isShowingAbout = true
+                isShowingSettings = true
             } label: {
-                Image(systemName: "info.circle")
+                LucideIcon("Settings", size: 18)
+                    .frame(width: 18, height: 18)
             }
             .buttonStyle(.plain)
-            .help("About ChatGPT Usage")
-            .accessibilityLabel("About ChatGPT Usage")
-            .popover(isPresented: $isShowingAbout, arrowEdge: .top) {
-                AboutView()
-                    .environmentObject(store)
+            .help("Settings")
+            .accessibilityLabel("Settings")
+            .popover(isPresented: $isShowingSettings) {
+                UsageSettingsView(settings: settings, store: store)
             }
         }
         .padding(.horizontal, 16)
@@ -110,7 +113,7 @@ struct UsageMenuView: View {
                                 .foregroundStyle(.secondary)
                         }
                     }
-                    Image(systemName: "arrow.up.forward.app")
+                    LucideIcon("ExternalLink", size: 14)
                         .foregroundStyle(.secondary)
                     Spacer()
                 }
@@ -165,7 +168,7 @@ struct UsageMenuView: View {
 
     private var unavailableContent: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Label("Usage unavailable", systemImage: "exclamationmark.triangle")
+            Label { Text("Usage unavailable") } icon: { LucideIcon("Warning") }
                 .font(.headline)
             Text(store.errorMessage ?? "ChatGPT has not returned usage data yet.")
                 .font(.callout)
@@ -186,7 +189,7 @@ struct UsageMenuView: View {
     }
 
     private var statusWarning: some View {
-        Label("A usage limit has been reached.", systemImage: "exclamationmark.circle.fill")
+        Label { Text("A usage limit has been reached.") } icon: { LucideIcon("LimitReached") }
             .font(.callout)
             .foregroundStyle(.orange)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -196,7 +199,7 @@ struct UsageMenuView: View {
 
     private func errorBanner(_ message: String) -> some View {
         HStack(alignment: .top, spacing: 8) {
-            Image(systemName: "exclamationmark.triangle.fill")
+            LucideIcon("Warning", size: 14)
                 .foregroundStyle(.orange)
             Text("Showing the last update. \(message)")
                 .font(.caption)
@@ -209,7 +212,7 @@ struct UsageMenuView: View {
     private func updateBanner(_ update: AvailableUpdate) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 10) {
-                Image(systemName: "arrow.down.circle.fill")
+                LucideIcon("Download", size: 16)
                     .font(.system(size: 18))
                     .foregroundStyle(.blue)
 
@@ -245,38 +248,33 @@ struct UsageMenuView: View {
                 Text(error).font(.caption).foregroundStyle(.orange)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            if let fetchedAt = store.snapshot?.fetchedAt {
-                TimelineView(.periodic(from: .now, by: 30)) { context in
-                    HStack(spacing: 3) {
-                        if store.isStale {
-                            Image(systemName: "exclamationmark.triangle")
+            HStack(spacing: 12) {
+                if let fetchedAt = store.snapshot?.fetchedAt {
+                    TimelineView(.periodic(from: .now, by: 30)) { context in
+                        HStack(spacing: 3) {
+                            if store.isStale {
+                                LucideIcon("Warning", size: 12)
+                            }
+                            Text("\(store.isStale ? "Stale · updated" : "Updated") \(UsageFormatters.updateAgeLabel(fetchedAt, now: context.date))")
                         }
-                        Text("\(store.isStale ? "Stale · updated" : "Updated") \(UsageFormatters.updateAgeLabel(fetchedAt, now: context.date))")
+                        .foregroundStyle(store.isStale ? .orange : .secondary)
+                        .lineLimit(1)
+                        .help("Last successful update: \(UsageFormatters.fullDateTime.string(from: fetchedAt))")
                     }
-                    .foregroundStyle(store.isStale ? .orange : .secondary)
-                    .lineLimit(1)
-                    .help("Last successful update: \(UsageFormatters.fullDateTime.string(from: fetchedAt))")
-                }
-            }
-
-            HStack(spacing: 14) {
-                Button(action: { store.refresh() }) {
-                    Label("Refresh", systemImage: "arrow.clockwise")
-                }
-                .disabled(store.isRefreshing)
-
-                Button {
-                    isShowingSettings = true
-                } label: {
-                    Label("Settings", systemImage: "gearshape")
-                }
-                .popover(isPresented: $isShowingSettings) {
-                    UsageSettingsView(settings: settings, store: store)
                 }
 
-                Spacer()
+                Spacer(minLength: 0)
 
-                Button("Quit") { NSApplication.shared.terminate(nil) }
+                HStack(spacing: 14) {
+                    Button(action: { store.refresh() }) {
+                        Label { Text("Refresh") } icon: { LucideIcon("Refresh", size: 12) }
+                    }
+                    .disabled(store.isRefreshing)
+                    .help("Refresh usage")
+
+                    Button("Quit") { NSApplication.shared.terminate(nil) }
+                }
+                .fixedSize()
             }
             .buttonStyle(.plain)
         }
@@ -314,8 +312,14 @@ struct UsageSettingsView: View {
     @ObservedObject var store: UsageStore
     @Environment(\.dismiss) private var dismiss
 
+    private let repositoryURL = URL(string: "https://github.com/asetho/ChatGPT-Usage")!
+
+    private var version: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "Unknown"
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 10) {
             Text("Settings").font(.headline)
 
             Toggle("Launch at login", isOn: Binding(
@@ -360,18 +364,171 @@ struct UsageSettingsView: View {
                 Text(error).font(.caption).foregroundStyle(.orange)
             }
 
-            HStack {
+            Divider()
+
+            HStack(spacing: 12) {
+                Image(nsImage: NSApplication.shared.applicationIconImage)
+                    .resizable()
+                    .frame(width: 40, height: 40)
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("ChatGPT Usage").font(.subheadline.weight(.semibold))
+                    Text("Version \(version)")
+                        .font(.caption).foregroundStyle(.secondary)
+                    Text("© 2026 asetho™")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+
                 Spacer()
-                Button("Done") { dismiss() }.keyboardShortcut(.defaultAction)
+
+                Link(destination: repositoryURL) {
+                    Image("GitHubMark")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 20, height: 20)
+                        .foregroundStyle(.primary)
+                        .padding(6)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help("Open ChatGPT Usage on GitHub")
+                .accessibilityLabel("Open ChatGPT Usage on GitHub")
+            }
+
+            if let status = store.updateCheckStatus {
+                Text(status)
+                    .font(.caption).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            if let update = store.availableUpdate {
+                HStack {
+                    if update.package != nil {
+                        Button(store.isInstallingUpdate ? "Updating…" : "Update now") { store.installAvailableUpdate() }
+                            .disabled(store.isInstallingUpdate)
+                    }
+                    Link("View version \(update.version)", destination: update.releaseURL)
+                }.font(.caption)
+            }
+            if let error = store.updateInstallError {
+                Text(error).font(.caption).foregroundStyle(.orange)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            if store.isInstallingUpdate, let status = store.updateInstallStatus {
+                Text(status).font(.caption).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            HStack {
+                Button {
+                    store.checkForUpdatesManually()
+                } label: {
+                    Label {
+                        Text("Check for Updates")
+                    } icon: {
+                        ZStack {
+                            UpToDateCheckbox(isChecked: store.isUpToDate && !store.isCheckingForUpdates)
+                            if store.isCheckingForUpdates {
+                                UpdateCheckSpinner()
+                            } else if !store.isUpToDate {
+                                LucideIcon("Refresh", size: 14)
+                                    .font(.system(size: 12, weight: .medium))
+                                    .frame(width: 14, height: 14)
+                            }
+                        }
+                        .frame(width: 14, height: 14)
+                    }
+                }
+                .disabled(store.isCheckingForUpdates)
+                .accessibilityLabel("Check for Updates")
+                .accessibilityValue(store.isCheckingForUpdates ? "Checking" : store.isUpToDate ? "Up to date" : "")
+
+                Spacer()
+                Button("Done") { dismiss() }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.blue)
+                    .keyboardShortcut(.defaultAction)
             }
         }
-        .padding(20)
-        .frame(width: 340)
+        .padding(14)
+        .frame(width: 320)
         .preferredColorScheme(.dark)
-        .onAppear { settings.reloadLoginStatus() }
+        .onAppear {
+            settings.reloadLoginStatus()
+            store.clearUpdateCheckConfirmation()
+        }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             settings.reloadLoginStatus()
         }
+    }
+}
+
+private struct UpdateCheckSpinner: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var isSpinning = false
+
+    var body: some View {
+        LucideIcon("Refresh", size: 14)
+            .font(.system(size: 12, weight: .medium))
+            .frame(width: 14, height: 14)
+            .rotationEffect(.degrees(isSpinning ? 360 : 0))
+            .animation(reduceMotion ? nil : .linear(duration: 0.8).repeatForever(autoreverses: false), value: isSpinning)
+            .help("Checking for updates…")
+            .accessibilityLabel("Checking for updates")
+            .onAppear { isSpinning = !reduceMotion }
+            .onChange(of: reduceMotion) { isSpinning = !$0 }
+    }
+}
+
+private struct UpToDateCheckbox: View {
+    let isChecked: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var checkProgress: CGFloat = 0
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 2.5).fill(.green)
+            LucideIcon("Check", size: 12)
+                .foregroundStyle(.black)
+                .mask(alignment: .leading) {
+                    Rectangle().scaleEffect(x: checkProgress, anchor: .leading)
+                }
+        }
+        .frame(width: 14, height: 14)
+        .opacity(isChecked ? 1 : 0)
+        .help("You’re up to date.")
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Up to date")
+        .accessibilityHidden(!isChecked)
+        .onAppear { checkProgress = isChecked ? 1 : 0 }
+        .onChange(of: isChecked) { checked in
+            if checked {
+                withAnimation(reduceMotion ? nil : .easeOut(duration: 0.4)) {
+                    checkProgress = 1
+                }
+            } else {
+                checkProgress = 0
+            }
+        }
+    }
+}
+
+private struct LucideIcon: View {
+    let name: String
+    var size: CGFloat = 14
+
+    init(_ name: String, size: CGFloat = 14) {
+        self.name = name
+        self.size = size
+    }
+
+    var body: some View {
+        Image("Lucide" + name)
+            .renderingMode(.template)
+            .resizable()
+            .scaledToFit()
+            .frame(width: size, height: size)
+            .accessibilityHidden(true)
     }
 }
 
@@ -393,7 +550,7 @@ private struct ExpandableSection<Content: View>: View {
                 isExpanded.toggle()
             } label: {
                 HStack(spacing: 8) {
-                    Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                    LucideIcon(isExpanded ? "ChevronDown" : "ChevronRight", size: 12)
                         .font(.system(size: 9, weight: .semibold))
                         .frame(width: 10)
                     Text(title)
@@ -487,7 +644,7 @@ private struct AdditionalLimitView: View {
                 Text(limit.displayName)
                 if limit.isLunaReserve {
                     Link(destination: URL(string: "https://help-lb.openai.com/en/articles/20001499-luna-reserve-in-codex-and-chatgpt-work")!) {
-                        Image(systemName: "questionmark.circle")
+                        LucideIcon("Help", size: 14)
                     }
                     .help("Read the Luna Reserve guide")
                     .accessibilityLabel("Read the Luna Reserve guide")
@@ -507,85 +664,6 @@ private struct AdditionalLimitView: View {
                 )
             }
         }
-    }
-}
-
-private struct AboutView: View {
-    @EnvironmentObject private var store: UsageStore
-    @Environment(\.dismiss) private var dismiss
-
-    private let repositoryURL = URL(string: "https://github.com/asetho/ChatGPT-Usage")!
-
-    private var version: String {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "Unknown"
-    }
-
-    var body: some View {
-        VStack(spacing: 14) {
-            Image(nsImage: NSApplication.shared.applicationIconImage)
-                .resizable()
-                .frame(width: 64, height: 64)
-
-            VStack(spacing: 3) {
-                Text("ChatGPT Usage")
-                    .font(.title2.weight(.semibold))
-                Text("Version \(version)")
-                    .foregroundStyle(.secondary)
-                Text("© 2026 asetho™")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            Button {
-                store.checkForUpdatesManually()
-            } label: {
-                Label("Check for Updates", systemImage: "arrow.clockwise")
-            }
-            .disabled(store.isCheckingForUpdates)
-
-            if let status = store.updateCheckStatus {
-                Text(status)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            if let update = store.availableUpdate {
-                HStack {
-                    if update.package != nil {
-                        Button(store.isInstallingUpdate ? "Updating…" : "Update now") { store.installAvailableUpdate() }
-                            .disabled(store.isInstallingUpdate)
-                    }
-                    Link("View version \(update.version)", destination: update.releaseURL)
-                }.font(.caption)
-            }
-            if let error = store.updateInstallError {
-                Text(error).font(.caption).foregroundStyle(.orange)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            if store.isInstallingUpdate, let status = store.updateInstallStatus {
-                Text(status).font(.caption).foregroundStyle(.secondary)
-            }
-
-            Link(destination: repositoryURL) {
-                Image("GitHubMark")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 24, height: 24)
-                    .foregroundStyle(.primary)
-                    .padding(8)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .help("Open ChatGPT Usage on GitHub")
-            .accessibilityLabel("Open ChatGPT Usage on GitHub")
-
-            Button("Done") { dismiss() }
-                .keyboardShortcut(.defaultAction)
-        }
-        .padding(24)
-        .frame(width: 360)
-        .preferredColorScheme(.dark)
     }
 }
 

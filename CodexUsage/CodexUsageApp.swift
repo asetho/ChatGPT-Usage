@@ -101,6 +101,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Let AppKit style the title and template icon together on inactive menu bars.
         button.title = percentage
+        if let cell = button.cell {
+            let bounds = NSRect(origin: .zero, size: NSSize(width: cell.cellSize.width, height: button.bounds.height))
+            var contentBounds = cell.titleRect(forBounds: bounds)
+            if button.image != nil {
+                contentBounds = contentBounds.union(cell.imageRect(forBounds: bounds))
+            }
+            // Fit the drawn content without the status item's extra side margins.
+            statusItem?.length = ceil(contentBounds.width)
+        }
         button.toolTip = "\(UsageStore.shared.statusDescription) Double-click to open ChatGPT."
         button.setAccessibilityLabel(UsageStore.shared.statusDescription)
     }

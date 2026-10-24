@@ -11,7 +11,7 @@ public partial class MainWindow : Window
     private bool canClose;
     private bool heightFitQueued;
     private bool isFittingHeight;
-    private bool isShowingAbout;
+    private bool isShowingSettings;
 
     public MainWindow(UsageViewModel usage)
     {
@@ -47,7 +47,7 @@ public partial class MainWindow : Window
 
     private void Window_Deactivated(object sender, EventArgs e)
     {
-        if (!isShowingAbout) Hide();
+        if (!isShowingSettings) Hide();
     }
 
     private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
@@ -164,16 +164,16 @@ public partial class MainWindow : Window
         }
     }
 
-    private void About_Click(object sender, RoutedEventArgs e)
+    private void Settings_Click(object sender, RoutedEventArgs e)
     {
-        isShowingAbout = true;
+        isShowingSettings = true;
         try
         {
-            new AboutWindow((UsageViewModel)DataContext) { Owner = this }.ShowDialog();
+            new SettingsWindow((UsageViewModel)DataContext) { Owner = this }.ShowDialog();
         }
         finally
         {
-            isShowingAbout = false;
+            isShowingSettings = false;
         }
     }
 

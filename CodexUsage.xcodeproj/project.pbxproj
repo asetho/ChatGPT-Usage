@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		B67064DA7F47462EA9F82C01 /* Lucide-LICENSE.txt in Resources */ = {isa = PBXBuildFile; fileRef = B67064DA7F47462EA9F82C02 /* Lucide-LICENSE.txt */; };
 		C41A3D9DF3264191820A3211 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = C41A3D9DF3264191820A3212 /* AppSettings.swift */; };
 		0C7057EB4BE43F137A0EFFE4 /* UsageMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B486355A73E39E4E96C76640 /* UsageMenuView.swift */; };
 		3BC0BF8E0D6FF89D11569728 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F09F905C5720E63453AC7184 /* Assets.xcassets */; };
@@ -32,6 +33,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		B67064DA7F47462EA9F82C02 /* Lucide-LICENSE.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "Lucide-LICENSE.txt"; sourceTree = "<group>"; };
 		C41A3D9DF3264191820A3212 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
 		0BDE6402EB79CD9981F92671 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		1C00038B95015309DAFEFF1E /* UpdateInstaller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateInstaller.swift; sourceTree = "<group>"; };
@@ -99,6 +101,7 @@
 			isa = PBXGroup;
 			children = (
 				F181B026A83E2786655CDEB7 /* install-update.sh */,
+				B67064DA7F47462EA9F82C02 /* Lucide-LICENSE.txt */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -186,6 +189,7 @@
 			files = (
 				3BC0BF8E0D6FF89D11569728 /* Assets.xcassets in Resources */,
 				A87772E7E1C290DCAB6AEFBA /* install-update.sh in Resources */,
+				B67064DA7F47462EA9F82C01 /* Lucide-LICENSE.txt in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
