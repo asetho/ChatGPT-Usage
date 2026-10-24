@@ -4,9 +4,12 @@ namespace ChatGPTUsage.Windows;
 
 public partial class SettingsWindow : Window
 {
+    private const double ScreenMargin = 8;
+
     public SettingsWindow(UsageViewModel usage)
     {
         InitializeComponent();
+        MaxHeight = Math.Max(1, SystemParameters.WorkArea.Height - 2 * ScreenMargin);
         DataContext = usage;
         VersionText.Text = $"Version {UpdateCheckService.CurrentVersionText}";
     }
@@ -25,10 +28,9 @@ public partial class SettingsWindow : Window
 
     private void KeepWithinWorkArea()
     {
-        const double margin = 8;
         var area = SystemParameters.WorkArea;
-        Left = Math.Clamp(Left, area.Left + margin, Math.Max(area.Left + margin, area.Right - ActualWidth - margin));
-        Top = Math.Clamp(Top, area.Top + margin, Math.Max(area.Top + margin, area.Bottom - ActualHeight - margin));
+        Left = Math.Clamp(Left, area.Left + ScreenMargin, Math.Max(area.Left + ScreenMargin, area.Right - ActualWidth - ScreenMargin));
+        Top = Math.Clamp(Top, area.Top + ScreenMargin, Math.Max(area.Top + ScreenMargin, area.Bottom - ActualHeight - ScreenMargin));
     }
 
     private void ReloadSettings()
@@ -46,7 +48,8 @@ public partial class SettingsWindow : Window
         catch { LoginError.Text = "Couldn’t read launch at login settings."; LoginError.Visibility = Visibility.Visible; }
         var selected = AppSettings.CodexExecutablePath;
         CodexDetectionText.Text = selected is null ? "Automatic detection" : "Selected executable";
-        CodexPathText.Text = CodexUsageService.FindExecutable();
+        try { CodexPathText.Text = CodexUsageService.FindExecutable(); }
+        catch { CodexPathText.Text = "Codex was not found. Choose its executable."; }
         CodexPathText.ToolTip = CodexPathText.Text;
         AutomaticCodexButton.Visibility = selected is null ? Visibility.Collapsed : Visibility.Visible;
     }

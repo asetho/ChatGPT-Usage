@@ -6,6 +6,7 @@
         WindowStartupLocation="CenterOwner" ShowInTaskbar="False" Topmost="True"
         Background="Transparent" AllowsTransparency="True" Loaded="Window_Loaded" SizeChanged="Window_SizeChanged">
     <Border Background="#14171D" BorderBrush="#414650" BorderThickness="1" CornerRadius="12" Padding="14">
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
         <StackPanel>
             <TextBlock Text="Settings" FontSize="16" FontWeight="SemiBold" Foreground="#F0F1F4" Margin="0,0,0,10" />
             <CheckBox x:Name="LaunchAtLoginCheckBox" Content="Launch at login" Foreground="#E6E8EE"
@@ -58,5 +59,6 @@
                 <Button Content="Done" Click="Done_Click" Padding="12,6" HorizontalAlignment="Right" IsDefault="True" IsCancel="True" Background="#1677EB" Foreground="White" />
             </Grid>
         </StackPanel>
+        </ScrollViewer>
     </Border>
 </Window>
