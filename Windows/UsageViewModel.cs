@@ -166,6 +166,7 @@ public sealed class UsageViewModel : INotifyPropertyChanged
             NotifyUpdateState();
             if (update is null)
             {
+                updateInstallError = "";
                 UpdateAvailableVisibility = Visibility.Collapsed;
                 UpdateDescription = "";
                 UpdateUrl = null;
