@@ -1,9 +1,10 @@
 CHATGPT USAGE - UNSIGNED INSTALLATION NOTICE
 
-This is unofficial community software, not an OpenAI product. Downloads are
-not publisher-signed, and the Mac app is not notarized by Apple. No paid
-signing service is used. Your operating system may warn or refuse to run it.
-These instructions and any source review are not a guarantee of safety.
+This is unofficial community software, not an OpenAI product. This notice
+applies to unsigned packages: Windows downloads are not publisher-signed,
+and Mac builds without Developer ID signing are not notarized by Apple.
+Your operating system may warn or refuse to run them. These instructions
+and any source review are not a guarantee of safety.
 
 Only proceed if you trust the project and the exact file you downloaded:
 https://github.com/asetho/ChatGPT-Usage
@@ -24,7 +25,7 @@ hash differs. A matching checksum detects corruption or mismatched files;
 it does not prove publisher identity, absence of malware, or safety if
 both the download and its checksum have been replaced.
 
-MAC: APP-SPECIFIC OPEN ANYWAY
+MAC: APP-SPECIFIC OPEN ANYWAY FOR UNSIGNED BUILDS
 
 1. Open the DMG and copy ChatGPT Usage to Applications.
 2. Try opening the copied app once. If macOS cannot verify the developer,
