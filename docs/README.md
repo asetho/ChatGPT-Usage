@@ -11,5 +11,5 @@ remains verified. The sitemap contains the canonical homepage URL. Download link
 GitHub's latest-release page so they remain current without a website release.
 
 The screenshots are existing public demo images from `Artwork/Screenshots` and show
-sample usage. Update them when refreshing the app's public screenshots. Signing is
-pending SignPath Foundation approval; do not claim current downloads are signed.
+sample usage. Update them when refreshing the app's public screenshots. Keep the
+Mac signing and notarization status distinct from the unsigned Windows installer.
