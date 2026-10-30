@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>ChatGPT Usage illustrative 1.0.29 screenshots</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 24px; background: #e7ebe8; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  .shot { margin-bottom: 24px; overflow: hidden; }
+  .icon { display: inline-block; object-fit: contain; flex: none; }
+  .light-icon { filter: invert(1); }
+  .muted-icon { filter: invert(.72); }
+  .row { display: flex; align-items: center; }
+  .between { justify-content: space-between; }
+  .divider { height: 1px; background: #ffffff24; }
+
+  #macos-menu { zoom: 2; width: 280px; color: #f3f3f4; background: #292a2c; border: 1px solid #4d4e50; border-radius: 12px; font-size: 13px; box-shadow: 0 8px 24px #0005; }
+  .mac-header { height: 49px; padding: 0 16px; gap: 10px; font-size: 16px; font-weight: 600; }
+  .mac-header .settings { margin-left: auto; width: 18px; height: 18px; }
+  .mac-weekly { padding: 14px 16px 6px; }
+  .mac-weekly .row { font-size: 15px; line-height: 20px; }
+  .mac-weekly .muted { color: #aaaeb4; font-variant-numeric: tabular-nums; }
+  .mac-subline { margin-top: 3px; color: #aaaeb4; font-size: 11px; }
+  .mac-reset { padding: 8px 16px; font-size: 13px; }
+  .mac-reset .subline { margin-top: 3px; color: #aaaeb4; font-size: 11px; }
+  .mac-details { padding: 11px 16px; }
+  .mac-section-title { display: flex; align-items: center; gap: 8px; font-size: 13px; line-height: 18px; }
+  .mac-section-title .icon { width: 10px; height: 10px; }
+  .mac-section-body { margin: 8px 0 0 18px; }
+  .mac-section-body .name { color: #aaaeb4; font-size: 11px; margin-bottom: 6px; }
+  .mac-limit-row { font-size: 13px; line-height: 18px; }
+  .mac-limit-row .secondary { color: #aaaeb4; margin-left: auto; font-size: 11px; }
+  .mac-limit-row .value { color: #aaaeb4; width: 38px; text-align: right; font-variant-numeric: tabular-nums; }
+  .mac-limit-reset { margin-top: 2px; color: #aaaeb4; font-size: 11px; }
+  .mac-token { margin-top: 11px; }
+  .mac-token .mac-section-body { display: grid; gap: 7px; }
+  .mac-token .row { line-height: 16px; }
+  .mac-token .label { color: #aaaeb4; }
+  .mac-token .value { font-variant-numeric: tabular-nums; }
+  .mac-footer { min-height: 39px; padding: 10px 16px; gap: 8px; font-size: 11px; }
+  .mac-footer .updated { color: #aaaeb4; white-space: nowrap; }
+  .mac-footer .actions { margin-left: auto; display: flex; align-items: center; gap: 12px; white-space: nowrap; }
+  .mac-footer .refresh { display: flex; align-items: center; gap: 4px; }
+  .mac-footer .refresh .icon { width: 12px; height: 12px; }
+
+  #windows-popup { zoom: 2; width: 330px; padding: 18px; color: #f0f1f4; background: #14171d; border: 1px solid #414650; border-radius: 14px; font-family: "Segoe UI", Arial, sans-serif; box-shadow: 0 9px 24px #0006; }
+  .win-header { gap: 10px; margin-bottom: 14px; font-size: 18px; font-weight: 600; }
+  .win-header .settings { width: 18px; height: 18px; margin-left: auto; }
+  .win-weekly { margin-bottom: 12px; }
+  .win-weekly .row { font-size: 17px; }
+  .win-weekly .percent { color: #b4b8c0; font-variant-numeric: tabular-nums; }
+  .win-weekly .subline { margin-top: 3px; color: #858b96; font-size: 13px; }
+  .win-reset { padding: 5px 0; font-size: 16px; }
+  .win-reset .subline { margin-top: 2px; color: #858b96; font-size: 12px; }
+  .win-section-divider { height: 1px; margin: 12px 0 8px; background: #414650; }
+  .win-section-title { gap: 7px; font-size: 16px; }
+  .win-section-title .icon { width: 14px; height: 14px; }
+  .win-section-body { margin: 8px 0 0 18px; }
+  .win-section-body .name { color: #b4b8c0; font-size: 13px; font-weight: 600; margin-bottom: 7px; }
+  .win-section-body .row { font-size: 14px; line-height: 20px; }
+  .win-section-body .secondary { color: #b4b8c0; margin-left: auto; font-size: 12px; }
+  .win-section-body .value { width: 46px; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .win-section-body .reset { margin-top: 2px; color: #858b96; font-size: 12px; }
+  .win-token { margin-top: 10px; }
+  .win-token .win-section-body { display: grid; gap: 4px; }
+  .win-token .label { color: #b4b8c0; }
+  .win-token .value { font-size: 13px; font-weight: 400; }
+  .win-footer { border-top: 1px solid #414650; margin-top: 14px; padding-top: 10px; gap: 10px; font-size: 11px; }
+  .win-footer .updated { color: #858b96; }
+  .win-footer .actions { margin-left: auto; display: flex; align-items: center; gap: 12px; color: #e6e8ee; font-size: 12px; }
+  .win-footer .refresh { display: flex; gap: 5px; align-items: center; }
+  .win-footer .refresh .icon { width: 14px; height: 14px; }
+
+  #macos-menubar { zoom: 2; width: 120px; height: 28px; padding: 0 3px; display: flex; align-items: center; gap: 3px; color: #f7f7f7; background: #475d77; font-family: -apple-system, BlinkMacSystemFont, sans-serif; font-size: 12px; font-weight: 500; font-variant-numeric: tabular-nums; }
+  #macos-menubar .icon { width: 18px; height: 18px; }
+  #macos-menubar .search { width: 12px; height: 12px; border: 1.5px solid #fff; border-radius: 50%; margin-left: auto; margin-right: 4px; position: relative; }
+  #macos-menubar .search::after { content: ""; position: absolute; width: 5px; height: 1.5px; background: #fff; transform: rotate(45deg); right: -4px; bottom: -2px; border-radius: 1px; }
+  #windows-widget { zoom: 2; width: 88px; height: 36px; padding: 4px 7px; display: flex; align-items: center; gap: 6px; color: white; background: #14171de8; border: 1px solid #59616e; border-radius: 7px; font-family: "Segoe UI", Arial, sans-serif; font-size: 18px; font-weight: 600; }
+  #windows-widget .icon { width: 20px; height: 20px; }
+</style>
+
+<section id="macos-menu" class="shot" aria-label="Mac sample usage popup">
+  <div class="mac-header row"><img class="icon muted-icon" width="20" height="20" src="../../CodexUsage/Assets.xcassets/UsageGauge.imageset/usage-gauge.svg" alt="">Usage remaining<img class="icon light-icon settings" src="../../CodexUsage/Assets.xcassets/LucideSettings.imageset/settings.svg" alt=""></div>
+  <div class="divider"></div>
+  <div class="mac-weekly"><div class="row between"><span>Weekly</span><span class="muted">72%</span></div><div class="mac-subline">Resets Jan 12, 2027 at 8:30 PM</div></div>
+  <div class="mac-reset row between"><div><div>2 resets available</div><div class="subline">Expires Jan 14, 2027 at 5:00 PM</div></div><img class="icon muted-icon" width="14" height="14" src="../../CodexUsage/Assets.xcassets/LucideExternalLink.imageset/external-link.svg" alt=""></div>
+  <div class="divider"></div>
+  <div class="mac-details">
+    <div class="mac-section-title"><img class="icon light-icon" src="../../CodexUsage/Assets.xcassets/LucideChevronDown.imageset/chevron-down.svg" alt="">Additional limits</div>
+    <div class="mac-section-body"><div class="name">Codex Mini</div><div class="mac-limit-row row"><span>5h</span><span class="secondary">9:12 PM</span><span class="value">85%</span></div><div class="mac-limit-row row between"><span>Weekly</span><span class="value">69%</span></div><div class="mac-limit-reset">Resets Jan 13, 2027 at 9:12 PM</div></div>
+    <div class="mac-token"><div class="mac-section-title"><img class="icon light-icon" src="../../CodexUsage/Assets.xcassets/LucideChevronDown.imageset/chevron-down.svg" alt="">Token usage</div><div class="mac-section-body"><div class="row between"><span class="label">Today</span><span class="value">24.8K</span></div><div class="row between"><span class="label">Lifetime</span><span class="value">1.3M</span></div><div class="row between"><span class="label">Current streak</span><span class="value">6 days</span></div></div></div>
+  </div>
+  <div class="divider"></div>
+  <div class="mac-footer row"><span class="updated">Updated just now</span><span class="actions"><span class="refresh"><img class="icon light-icon" src="../../CodexUsage/Assets.xcassets/LucideRefresh.imageset/refresh-cw.svg" alt="">Refresh</span><span>Quit</span></span></div>
+</section>
+
+<section id="windows-popup" class="shot" aria-label="Windows sample usage popup">
+  <div class="win-header row"><img class="icon muted-icon" width="24" height="24" src="../../CodexUsage/Assets.xcassets/UsageGauge.imageset/usage-gauge.svg" alt="">Usage remaining<img class="icon muted-icon settings" src="../../CodexUsage/Assets.xcassets/LucideSettings.imageset/settings.svg" alt=""></div>
+  <div class="win-weekly"><div class="row between"><span>Weekly</span><span class="percent">72%</span></div><div class="subline">Resets Jan 12, 2027, 8:30 PM</div></div>
+  <div class="win-reset row between"><div><div>2 resets available</div><div class="subline">Expires Jan 14, 2027, 5:00 PM</div></div><img class="icon muted-icon" width="14" height="14" src="../../CodexUsage/Assets.xcassets/LucideExternalLink.imageset/external-link.svg" alt=""></div>
+  <div class="win-section-divider"></div>
+  <div class="win-section-title row"><img class="icon light-icon" src="../../CodexUsage/Assets.xcassets/LucideChevronDown.imageset/chevron-down.svg" alt="">Additional limits</div>
+  <div class="win-section-body"><div class="name">Codex Mini</div><div class="row"><span>5h</span><span class="secondary">9:12 PM</span><span class="value">85%</span></div><div class="row between"><span>Weekly</span><span class="value">69%</span></div><div class="reset">Resets Jan 13, 2027, 9:12 PM</div></div>
+  <div class="win-token"><div class="win-section-title row"><img class="icon light-icon" src="../../CodexUsage/Assets.xcassets/LucideChevronDown.imageset/chevron-down.svg" alt="">Token usage</div><div class="win-section-body"><div class="row between"><span class="label">Today</span><span class="value">24.8K</span></div><div class="row between"><span class="label">Lifetime</span><span class="value">1.3M</span></div><div class="row between"><span class="label">Current streak</span><span class="value">6 days</span></div></div></div>
+  <div class="win-footer row between"><span class="updated">Updated just now</span><span class="actions"><span class="refresh"><img class="icon light-icon" src="../../CodexUsage/Assets.xcassets/LucideRefresh.imageset/refresh-cw.svg" alt="">Refresh</span><span>Quit</span></span></div>
+</section>
+
+<section id="macos-menubar" class="shot" aria-label="Mac sample menu bar item"><img class="icon light-icon" src="../../CodexUsage/Assets.xcassets/ChatGPTMenuBarIcon.imageset/ChatGPTMenuBarIcon@2x.png" alt=""><span>72%</span><span class="search" aria-hidden="true"></span></section>
+<section id="windows-widget" class="shot" aria-label="Windows sample widget"><img class="icon light-icon" src="../../CodexUsage/Assets.xcassets/ChatGPTMenuBarIcon.imageset/ChatGPTMenuBarIcon@2x.png" alt=""><span>72%</span></section>
+</html>
