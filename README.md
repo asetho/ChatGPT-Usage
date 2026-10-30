@@ -1,6 +1,6 @@
 # ChatGPT Usage
 
-> **Unsigned community software:** these downloads are not publisher-signed, and the Mac app is not notarized by Apple. Your operating system may warn or block installation. This project provides no guarantee that a download is safe. Only proceed if you trust the source and have verified the file. Read [Unsigned installation and security warnings](UNSIGNED-INSTALL.txt) for the app-specific **Open Anyway** (Mac) and **More info → Run anyway** (Windows) steps. Do not disable system-wide security protections.
+> **Installation security:** Windows downloads are not publisher-signed. Mac releases may be Developer ID signed and notarized; check the release notes for the package you download. Unsigned packages may trigger operating-system warnings. Only proceed if you trust the source and have verified the file. Read [Unsigned installation and security warnings](UNSIGNED-INSTALL.txt) for the app-specific **Open Anyway** (Mac) and **More info → Run anyway** (Windows) steps. Do not disable system-wide security protections.
 
 A lightweight macOS menu-bar and Windows tray companion for viewing Codex usage. Both apps show the remaining weekly percentage and reset date, available reset credits and their expiration, extra model limits, token totals, refresh controls, and a direct link to the ChatGPT usage dashboard.
 
@@ -58,7 +58,7 @@ After a failed refresh, the apps retain the last successful percentage and mark 
    ```
 
 3. Open the DMG and copy **ChatGPT Usage** to Applications.
-4. Try opening the app once. If macOS blocks the unsigned app, follow the app-specific **Open Anyway** steps in [UNSIGNED-INSTALL.txt](UNSIGNED-INSTALL.txt). Do not disable Gatekeeper.
+4. Open the app. For an unsigned release, if macOS blocks it, follow the app-specific **Open Anyway** steps in [UNSIGNED-INSTALL.txt](UNSIGNED-INSTALL.txt). Do not disable Gatekeeper.
 
 ### Windows
 
@@ -72,7 +72,7 @@ After a failed refresh, the apps retain the last successful percentage and mark 
 3. Run the installer. If Codex CLI is missing, setup explains the requirement and offers to run OpenAI's current official installer. You can decline and install Codex yourself.
 4. Sign in to Codex separately if needed. The companion launches after setup and starts automatically when you sign in to Windows.
 
-For platform-specific unsigned-app warnings and checksum guidance, read [UNSIGNED-INSTALL.txt](UNSIGNED-INSTALL.txt). A matching checksum detects a mismatched download; it is not a publisher signature or malware scan.
+For unsigned-app warnings and checksum guidance, read [UNSIGNED-INSTALL.txt](UNSIGNED-INSTALL.txt). A matching checksum detects a mismatched download; it is not a publisher signature or malware scan.
 
 ## Privacy and limitations
 
@@ -80,7 +80,7 @@ The optional Windows Codex installation downloads and runs OpenAI's current inst
 
 Both apps check this repository's latest published GitHub release at launch and every 12 hours while running. When a newer version has matching packages and checksums, choose **Update now** to download, verify, install, and reopen the app. The Mac app must be in a writable Applications folder; Windows must have been installed with this project's installer. Updates preserve app settings and sign-in state. **View release** is available for manual installation; failed update checks are silent.
 
-Installation starts only when you choose **Update now**. Packages are checked against GitHub's SHA256 asset digests and the accompanying checksum file. These checks detect mismatched downloads; they do not verify a publisher signature. Normal macOS and Windows security approval may still be required. If a Mac update cannot launch, the helper restores the previous app. Existing versions without **Update now** need one manual installation of a build containing this feature.
+Installation starts only when you choose **Update now**. Packages are checked against GitHub's SHA256 asset digests and the accompanying checksum file. These checks detect mismatched downloads; they do not verify a publisher signature. Developer ID signing and notarization provide separate macOS publisher and Gatekeeper checks when a release uses them. Normal macOS and Windows security approval may still be required. If a Mac update cannot launch, the helper restores the previous app. Existing versions without **Update now** need one manual installation of a build containing this feature.
 
 See [Privacy](PRIVACY.md) for local data and subprocess behavior, and [Security](SECURITY.md) for reporting concerns. The app uses experimental Codex API capabilities; compatibility can change when Codex updates. Usage figures may be unavailable or stale and should be confirmed in the official dashboard.
 
@@ -92,7 +92,17 @@ See [Privacy](PRIVACY.md) for local data and subprocess behavior, and [Security]
 scripts/build-macos-dmg.sh
 ```
 
-Requires Xcode and [XcodeGen](https://github.com/yonaskolb/XcodeGen). The script creates `dist/ChatGPTUsage-<version>.dmg` and its checksum.
+Requires Xcode and [XcodeGen](https://github.com/yonaskolb/XcodeGen). The script uses [dmgbuild](https://github.com/dmgbuild/dmgbuild) for a branded Finder install window, installing the build-only tool into ignored `build/dmgbuild-venv` on first use if needed. It creates `dist/ChatGPTUsage-<version>.dmg` and its checksum.
+
+For a Developer ID signed and notarized DMG, install a **Developer ID Application** certificate in your keychain and store notarization credentials with `xcrun notarytool store-credentials <profile>`. Then build with both settings:
+
+```sh
+DEVELOPER_ID_APPLICATION='Developer ID Application: Name (TEAMID)' \
+NOTARYTOOL_KEYCHAIN_PROFILE='<profile>' \
+scripts/build-macos-dmg.sh
+```
+
+The script signs the app with hardened runtime and a secure timestamp, submits the DMG to Apple, staples and validates the ticket, then writes the package and checksum. The notarized DMG shows only the app and Applications shortcut; its signed app bundle includes `LICENSE`. If Apple is still processing after 30 minutes, the signed DMG and submission ID remain in `OUTPUT_DIR/.notarization-<version>`; rerun the same command to resume that submission without uploading another copy. The output package is written only after notarization succeeds. Without both settings, the script creates the existing ad hoc signed, unnotarized build with visible installation notes. Set `OUTPUT_DIR` to build into an isolated folder; the script will not overwrite an existing package of the same version.
 
 ### Windows
 
@@ -106,9 +116,9 @@ Requires the .NET SDK 10.0.401 (or a newer 10.0.4xx patch) and Inno Setup 6. The
 
 ### Versioning and packages
 
-`VERSION` is the release version for both platforms. The Windows build generates the executable and Start-menu icon from the same ChatGPT tray mark. Neither platform package has a verified publisher signature, and the Mac app is not notarized. The Mac bundle uses a local ad hoc signature for Login Items; this does not verify the publisher. No paid signing service or certificate is required by these scripts.
+`VERSION` is the release version for both platforms. The Windows build generates the executable and Start-menu icon from the same ChatGPT tray mark. Windows packages remain unsigned. Mac packages are notarized only when built with the Developer ID and notary profile settings above; otherwise the Mac bundle uses a local ad hoc signature for Login Items, which does not verify the publisher.
 
-The installation warning is included in the DMG and displayed before Windows setup installs the app. Build scripts normally retain the three newest packages and their checksums. To preserve existing packages during local verification, use `KEEP_OLD_PACKAGES=1 scripts/build-macos-dmg.sh` or `scripts\build-windows-installer.ps1 -KeepOldPackages`.
+The unsigned installation warning is included only in unsigned Mac DMGs and is displayed before Windows setup installs the app. Build scripts normally retain the three newest packages and their checksums. To preserve existing packages during local verification, use `KEEP_OLD_PACKAGES=1 scripts/build-macos-dmg.sh` or `scripts\build-windows-installer.ps1 -KeepOldPackages`.
 
 Before publishing, follow the [release checklist](RELEASE-CHECKLIST.md). Building locally does not publish a release.
 
