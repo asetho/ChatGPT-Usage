@@ -34,14 +34,8 @@ try {
             $graphics.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
             $graphics.CompositingQuality = [System.Drawing.Drawing2D.CompositingQuality]::HighQuality
             $graphics.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
-            # Small Windows shell sizes use optically simplified artwork. The
-            # full-size macOS source keeps its transparent canvas cropped away.
-            $sourceInset = if ($pixelSize -le 64) {
-                0
-            }
-            else {
-                [int][Math]::Round([Math]::Min($frameSource.Width, $frameSource.Height) * 0.045)
-            }
+            # Preserve the Orbit artwork's intentional inset at every size.
+            $sourceInset = 0
             $sourceSize = [int][Math]::Min($frameSource.Width, $frameSource.Height) - ($sourceInset * 2)
             $inset = 0.0
             $cornerDiameter = $pixelSize * 0.38

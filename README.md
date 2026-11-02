@@ -118,7 +118,7 @@ Requires the .NET SDK 10.0.401 (or a newer 10.0.4xx patch) and Inno Setup 6. The
 
 ### Versioning and packages
 
-`VERSION` is the release version for both platforms. The Windows build generates the executable and Start-menu icon from the same ChatGPT tray mark. Windows packages remain unsigned. Mac packages are notarized only when built with the Developer ID and notary profile settings above; otherwise the Mac bundle uses a local ad hoc signature for Login Items, which does not verify the publisher.
+`VERSION` is the release version for both platforms. The Windows build generates the executable, Start-menu, and tray icons from the Orbit app mark. Windows packages remain unsigned. Mac packages are notarized only when built with the Developer ID and notary profile settings above; otherwise the Mac bundle uses a local ad hoc signature for Login Items, which does not verify the publisher.
 
 The unsigned installation warning is included only in unsigned Mac DMGs and is displayed before Windows setup installs the app. Build scripts normally retain the three newest packages and their checksums. To preserve existing packages during local verification, use `KEEP_OLD_PACKAGES=1 scripts/build-macos-dmg.sh` or `scripts\build-windows-installer.ps1 -KeepOldPackages`.
 
