@@ -329,6 +329,9 @@ h3 {
   margin:8px auto 0;
   object-fit:contain
 }
+.small-screenshot.macos-menubar {
+  border-radius:4px
+}
 .small-screenshot.windows-widget {
   height:37px
 }
