@@ -147,6 +147,8 @@ public partial class MainWindow : Window
     private void OpenUsage_Click(object sender, RoutedEventArgs e) =>
         ExternalLinkLauncher.TryOpen("https://chatgpt.com/settings/usage?tab=overview");
 
+    private void OpenChatGPT_Click(object sender, RoutedEventArgs e) => ChatGPTLauncher.Open();
+
     private void OpenReserveGuide_Click(object sender, RoutedEventArgs e) =>
         ExternalLinkLauncher.TryOpen("https://help-lb.openai.com/en/articles/20001499-luna-reserve-in-codex-and-chatgpt-work");
 
