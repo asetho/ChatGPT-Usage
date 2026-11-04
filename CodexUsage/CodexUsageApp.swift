@@ -19,6 +19,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private var statusItem: NSStatusItem?
     private let popover = NSPopover()
+    private var pendingStatusClick: DispatchWorkItem?
+    private var lastStatusClickTime: TimeInterval?
     private var statusObservers = Set<AnyCancellable>()
 
 #if DEBUG
@@ -50,6 +52,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        pendingStatusClick?.cancel()
         UsageStore.shared.stop()
         if let statusItem {
             NSStatusBar.system.removeStatusItem(statusItem)
@@ -115,18 +118,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func handleStatusItemClick(_ sender: NSStatusBarButton) {
-        if (NSApp.currentEvent?.clickCount ?? 1) >= 2 {
+        let clickTime = ProcessInfo.processInfo.systemUptime
+        let isSecondClick = lastStatusClickTime.map {
+            clickTime >= $0 && clickTime - $0 <= NSEvent.doubleClickInterval
+        } ?? false
+        if (NSApp.currentEvent?.clickCount ?? 1) >= 2 || isSecondClick {
+            lastStatusClickTime = nil
+            pendingStatusClick?.cancel()
+            pendingStatusClick = nil
             popover.performClose(sender)
             Self.openChatGPT()
             return
         }
+        lastStatusClickTime = clickTime
 
         if popover.isShown {
             popover.performClose(sender)
         } else {
-            popover.show(relativeTo: sender.bounds, of: sender, preferredEdge: .minY)
-            NSApp.activate(ignoringOtherApps: true)
-            popover.contentViewController?.view.window?.makeKey()
+            pendingStatusClick?.cancel()
+            let click = DispatchWorkItem { [weak self, weak sender] in
+                guard let self, let sender else { return }
+                self.pendingStatusClick = nil
+                self.popover.show(relativeTo: sender.bounds, of: sender, preferredEdge: .minY)
+                NSApp.activate(ignoringOtherApps: true)
+                self.popover.contentViewController?.view.window?.makeKey()
+            }
+            pendingStatusClick = click
+            DispatchQueue.main.asyncAfter(deadline: .now() + NSEvent.doubleClickInterval, execute: click)
         }
     }
 
