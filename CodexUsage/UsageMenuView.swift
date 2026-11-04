@@ -248,6 +248,12 @@ struct UsageMenuView: View {
                 Text(error).font(.caption).foregroundStyle(.orange)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            Button(action: AppDelegate.openChatGPT) {
+                Label { Text("Open ChatGPT") } icon: { LucideIcon("ExternalLink", size: 12) }
+            }
+            .buttonStyle(.plain)
+            .help("Open the ChatGPT app or chatgpt.com")
+
             HStack(spacing: 12) {
                 if let fetchedAt = store.snapshot?.fetchedAt {
                     TimelineView(.periodic(from: .now, by: 30)) { context in

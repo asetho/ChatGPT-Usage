@@ -35,6 +35,14 @@
                 <TextBlock Text="{Binding UpdateInstallError}" Visibility="{Binding UpdateInstallErrorVisibility}"
                            Foreground="#E9B267" TextWrapping="Wrap" FontSize="12" Margin="0,0,0,12" />
 
+                <Button Click="OpenChatGPT_Click" HorizontalAlignment="Left" Padding="0,3" Margin="0,0,0,6"
+                        Background="Transparent" BorderThickness="0" Foreground="#E6E8EE"
+                        ToolTip="Open the ChatGPT app or chatgpt.com" AutomationProperties.Name="Open ChatGPT">
+                    <StackPanel Orientation="Horizontal">
+                        <local:SymbolIcon Kind="ExternalLink" Width="14" Height="14" Foreground="#E6E8EE" Margin="0,0,5,0" />
+                        <TextBlock Text="Open ChatGPT" FontSize="12" />
+                    </StackPanel>
+                </Button>
                 <Separator Background="#414650" />
                 <Grid Margin="0,10,0,0">
                     <Grid.ColumnDefinitions>

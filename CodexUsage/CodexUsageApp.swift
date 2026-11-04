@@ -117,7 +117,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func handleStatusItemClick(_ sender: NSStatusBarButton) {
         if (NSApp.currentEvent?.clickCount ?? 1) >= 2 {
             popover.performClose(sender)
-            openChatGPT()
+            Self.openChatGPT()
             return
         }
 
@@ -130,7 +130,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func openChatGPT() {
+    static func openChatGPT() {
         let webFallback = URL(string: "https://chatgpt.com")!
         guard let appURL = NSWorkspace.shared.urlForApplication(
             withBundleIdentifier: "com.openai.codex"
