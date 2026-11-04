@@ -62,9 +62,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         item.isVisible = true
 
         guard let button = item.button else { return }
-        button.target = self
-        button.action = #selector(handleStatusItemClick(_:))
-        button.sendAction(on: [.leftMouseUp])
+        #if compiler(>=6.4)
+        if #available(macOS 27.0, *) {
+            item.expandedInterfaceDelegate = self
+        } else {
+            configureLegacyClick(button)
+        }
+        #else
+        configureLegacyClick(button)
+        #endif
         button.font = Self.statusFont
         let icon = loadChatGPTMenuBarIcon()?.copy() as? NSImage
         icon?.size = NSSize(width: 18, height: 18)
@@ -79,8 +85,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         controller.sizingOptions = [.preferredContentSize]
         popover.contentViewController = controller
         popover.behavior = .transient
-        popover.animates = true
+        popover.animates = false
         popover.appearance = NSAppearance(named: .darkAqua)
+        popover.delegate = self
 
         statusItem = item
         updateStatusItem()
@@ -118,10 +125,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if popover.isShown {
             popover.performClose(sender)
         } else {
-            popover.show(relativeTo: sender.bounds, of: sender, preferredEdge: .minY)
-            NSApp.activate(ignoringOtherApps: true)
-            popover.contentViewController?.view.window?.makeKey()
+            showPopover(from: sender)
         }
+    }
+
+    private func configureLegacyClick(_ button: NSStatusBarButton) {
+        button.target = self
+        button.action = #selector(handleStatusItemClick(_:))
+        button.sendAction(on: [.leftMouseUp])
+    }
+
+    private func showPopover(from button: NSStatusBarButton) {
+        popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+        NSApp.activate(ignoringOtherApps: true)
+        popover.contentViewController?.view.window?.makeKey()
     }
 
     static func openChatGPT() {
@@ -173,3 +190,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 #endif
 }
+
+extension AppDelegate: NSPopoverDelegate {
+    func popoverDidClose(_ notification: Notification) {
+        #if compiler(>=6.4)
+        if #available(macOS 27.0, *) {
+            statusItem?.expandedInterfaceSession?.cancel()
+        }
+        #endif
+    }
+}
+
+#if compiler(>=6.4)
+@available(macOS 27.0, *)
+extension AppDelegate: NSStatusItemExpandedInterfaceDelegate {
+    nonisolated func statusItem(_ statusItem: NSStatusItem, didBegin session: NSStatusItemExpandedInterfaceSession) {
+        MainActor.assumeIsolated {
+            guard let button = statusItem.button else { return }
+            showPopover(from: button)
+        }
+    }
+
+    nonisolated func statusItemDidEndExpandedInterfaceSession(_ statusItem: NSStatusItem, animated: Bool) {
+        MainActor.assumeIsolated {
+            popover.close()
+        }
+    }
+}
+#endif
