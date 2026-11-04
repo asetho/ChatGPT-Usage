@@ -11,6 +11,14 @@ try {
     if ((Get-FileHash -LiteralPath $request.Installer -Algorithm SHA256).Hash.ToLowerInvariant() -ne $request.Sha256) {
         throw 'The update checksum changed. Nothing was installed.'
     }
+    $startupRegistryPath = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run'
+    $startupRegistryName = 'ChatGPT Usage'
+    $launchAtLoginWasEnabled = $false
+    try {
+        $launchAtLoginWasEnabled = ([Microsoft.Win32.Registry]::GetValue($startupRegistryPath, $startupRegistryName, $null)) -is [string]
+    } catch {
+        # Startup preferences must not prevent an otherwise valid update.
+    }
     [IO.File]::WriteAllText((Join-Path $request.Transaction 'ready'), '')
     $parentProcess = Get-Process -Id $request.ParentId -ErrorAction SilentlyContinue
     if ($null -ne $parentProcess -and $parentProcess.StartTime.ToUniversalTime().Ticks.ToString() -eq $request.ParentStartTicks) {
@@ -23,10 +31,23 @@ try {
     $found = (Get-Item -LiteralPath $executable).VersionInfo
     $version = '{0}.{1}.{2}' -f $found.FileMajorPart, $found.FileMinorPart, $found.FileBuildPart
     if ($version -ne $request.Version) { throw 'The installed version does not match the update.' }
+    $startupWarning = $null
+    if ($launchAtLoginWasEnabled) {
+        try {
+            if ($null -eq [Microsoft.Win32.Registry]::GetValue($startupRegistryPath, $startupRegistryName, $null)) {
+                [Microsoft.Win32.Registry]::SetValue($startupRegistryPath, $startupRegistryName, ('"' + $executable + '"'), [Microsoft.Win32.RegistryValueKind]::String)
+            }
+        } catch {
+            $startupWarning = 'The update installed, but Launch at login could not be restored. Turn it on in Settings.'
+        }
+    }
+    Remove-Item -LiteralPath $request.ErrorPath -Force -ErrorAction SilentlyContinue
+    if ($null -ne $startupWarning) {
+        try { [IO.File]::WriteAllText($request.ErrorPath, $startupWarning) } catch { }
+    }
     Start-Process -FilePath $executable | Out-Null
     # Retain only the small install log; the downloaded executable is no longer needed.
     Remove-Item -LiteralPath $request.Installer -Force -ErrorAction SilentlyContinue
-    Remove-Item -LiteralPath $request.ErrorPath -Force -ErrorAction SilentlyContinue
     [IO.File]::WriteAllText((Join-Path $request.Transaction 'completed'), $version)
 } catch {
     [IO.File]::WriteAllText($request.ErrorPath, 'The update could not finish. Try again or use View release to install it manually.')
