@@ -62,13 +62,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         item.isVisible = true
 
         guard let button = item.button else { return }
+        #if compiler(>=6.4)
         if #available(macOS 27.0, *) {
             item.expandedInterfaceDelegate = self
         } else {
-            button.target = self
-            button.action = #selector(handleStatusItemClick(_:))
-            button.sendAction(on: [.leftMouseUp])
+            configureLegacyClick(button)
         }
+        #else
+        configureLegacyClick(button)
+        #endif
         button.font = Self.statusFont
         let icon = loadChatGPTMenuBarIcon()?.copy() as? NSImage
         icon?.size = NSSize(width: 18, height: 18)
@@ -125,6 +127,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         } else {
             showPopover(from: sender)
         }
+    }
+
+    private func configureLegacyClick(_ button: NSStatusBarButton) {
+        button.target = self
+        button.action = #selector(handleStatusItemClick(_:))
+        button.sendAction(on: [.leftMouseUp])
     }
 
     private func showPopover(from button: NSStatusBarButton) {
@@ -185,12 +193,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
 extension AppDelegate: NSPopoverDelegate {
     func popoverDidClose(_ notification: Notification) {
+        #if compiler(>=6.4)
         if #available(macOS 27.0, *) {
             statusItem?.expandedInterfaceSession?.cancel()
         }
+        #endif
     }
 }
 
+#if compiler(>=6.4)
 @available(macOS 27.0, *)
 extension AppDelegate: NSStatusItemExpandedInterfaceDelegate {
     nonisolated func statusItem(_ statusItem: NSStatusItem, didBegin session: NSStatusItemExpandedInterfaceSession) {
@@ -206,3 +217,4 @@ extension AppDelegate: NSStatusItemExpandedInterfaceDelegate {
         }
     }
 }
+#endif
