@@ -101,6 +101,9 @@ CHATGPT_USAGE_DMG_BACKGROUND="$background" \
 CHATGPT_USAGE_DMG_UNSIGNED="$(( ! notarize ))" \
   "$dmgbuild_cmd" -s "$root/scripts/dmg-settings.py" "ChatGPT Usage" "$dmg"
 if (( notarize )); then
+  dmg_identifier="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Contents/Info.plist").DiskImage"
+  codesign --sign "$signing_identity" --timestamp --identifier "$dmg_identifier" "$dmg"
+  codesign --verify --strict "$dmg"
   mkdir -p "$pending_dir"
   mv "$dmg" "$pending_dmg"
   dmg="$pending_dmg"
@@ -142,6 +145,7 @@ if (( notarize )); then
     xcrun stapler staple "$dmg"
   fi
   xcrun stapler validate "$dmg"
+  codesign --verify --strict "$dmg"
 fi
 hdiutil verify "$dmg"
 shasum -a 256 "$dmg" | awk -v name="$dmg_name" '{print $1 "  " name}' > "$build_dir/$dmg_name.sha256"
