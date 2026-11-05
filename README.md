@@ -1,6 +1,6 @@
 # ChatGPT Usage
 
-> **Installation security:** Windows downloads are not publisher-signed. Mac releases may be Developer ID signed and notarized; check the release notes for the package you download. Unsigned packages may trigger operating-system warnings. Only proceed if you trust the source and have verified the file. Read [Unsigned installation and security warnings](UNSIGNED-INSTALL.txt) for the app-specific **Open Anyway** (Mac) and **More info → Run anyway** (Windows) steps. Do not disable system-wide security protections.
+> **Installation security:** The latest Mac release is Developer ID signed and notarized; Windows downloads are not publisher-signed. Check the release notes for the package you download. Unsigned packages may trigger operating-system warnings. Only proceed if you trust the source and have verified the file. Read [Unsigned installation and security warnings](UNSIGNED-INSTALL.txt) for the app-specific **Open Anyway** (Mac) and **More info → Run anyway** (Windows) steps. Do not disable system-wide security protections.
 
 A lightweight macOS menu-bar and Windows tray companion for viewing Codex usage. Both apps show the remaining weekly percentage and reset date, available reset credits and their expiration, extra model limits, token totals, refresh controls, and a direct link to the ChatGPT usage dashboard.
 
