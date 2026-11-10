@@ -310,6 +310,14 @@ final class UsageModelsTests: XCTestCase {
         XCTAssertEqual(UsageFormatters.tokenCount(10_200_000_000), "10.2B")
     }
 
+    func testCreditBalanceDisplaysWholeCredits() {
+        let locale = Locale(identifier: "en_US")
+        XCTAssertEqual(UsageFormatters.creditBalance("60473.9179850000", locale: locale), "60,474")
+        XCTAssertEqual(UsageFormatters.creditBalance("60473.001", locale: locale), "60,473")
+        XCTAssertEqual(UsageFormatters.creditBalance("0", locale: locale), "0")
+        XCTAssertNil(UsageFormatters.creditBalance("invalid", locale: locale))
+    }
+
     func testNearTermResetUsesTimeEvenAcrossMidnight() {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(secondsFromGMT: 0)!

@@ -191,6 +191,19 @@ enum UsageFormatters {
         return formatter
     }()
 
+    static func creditBalance(_ raw: String, locale: Locale = .current) -> String? {
+        guard let balance = Decimal(string: raw, locale: Locale(identifier: "en_US_POSIX")) else {
+            return nil
+        }
+        let formatter = NumberFormatter()
+        formatter.locale = locale
+        formatter.numberStyle = .decimal
+        formatter.minimumFractionDigits = 0
+        formatter.maximumFractionDigits = 0
+        formatter.roundingMode = .halfUp
+        return formatter.string(from: NSDecimalNumber(decimal: balance))
+    }
+
     static func resetLabel(_ timestamp: Int64?, now: Date = Date()) -> String {
         guard let timestamp else { return "—" }
         let date = Date(timeIntervalSince1970: TimeInterval(timestamp))

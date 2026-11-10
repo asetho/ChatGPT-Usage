@@ -234,6 +234,7 @@ internal sealed class RateLimitSnapshot
     public string? LimitName { get; init; }
     public RateLimitWindow? Primary { get; init; }
     public RateLimitWindow? Secondary { get; init; }
+    public CreditsSnapshot? Credits { get; init; }
 
     [JsonIgnore]
     public string? FallbackLimitId { get; set; }
@@ -248,6 +249,13 @@ internal sealed class RateLimitSnapshot
 
     private static bool IsReserveName(string? value) =>
         string.Equals(value?.Trim().Replace('_', '-'), "gpt-reserve", StringComparison.OrdinalIgnoreCase);
+}
+
+internal sealed class CreditsSnapshot
+{
+    public bool HasCredits { get; init; }
+    public bool Unlimited { get; init; }
+    public string? Balance { get; init; }
 }
 
 internal sealed class RateLimitWindow

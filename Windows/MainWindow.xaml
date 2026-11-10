@@ -92,7 +92,7 @@
                                    FontSize="13" Foreground="#858B96" />
                     </Grid>
 
-                    <Button Click="OpenUsage_Click" Padding="0,5" HorizontalContentAlignment="Left" Background="Transparent" BorderThickness="0" Foreground="#F0F1F4">
+                    <Button Click="OpenUsage_Click" Visibility="{Binding ResetVisibility}" Padding="0,5" HorizontalContentAlignment="Left" Background="Transparent" BorderThickness="0" Foreground="#F0F1F4">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
@@ -106,6 +106,15 @@
                             <local:SymbolIcon Grid.Column="1" Kind="ExternalLink" Width="14" Height="14" Foreground="#B4B8C0" Margin="6,0,0,0" />
                         </Grid>
                     </Button>
+
+                    <Grid Visibility="{Binding CreditVisibility}" Margin="0,8,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Credits available" Foreground="#B4B8C0" FontSize="13" />
+                        <TextBlock Grid.Column="1" Text="{Binding CreditBalance}" Foreground="#E6E8EE" FontSize="13" />
+                    </Grid>
 
                     <Separator Background="#414650" Margin="0,12,0,8" />
                     <Expander Header="Additional limits" Visibility="{Binding AdditionalLimitsVisibility}" Foreground="#F0F1F4" FontSize="16" Margin="0,0,0,8"

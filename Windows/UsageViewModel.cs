@@ -14,8 +14,9 @@ public sealed class UsageViewModel : INotifyPropertyChanged
     private readonly Func<Task<AvailableUpdateInfo?>> fetchUpdate;
     private string weeklyRemaining = "—";
     private string weeklyReset = "—";
-    private string resetTitle = "Open ChatGPT Usage";
+    private string resetTitle = "";
     private string resetExpiration = "";
+    private string creditBalance = "";
     private string errorMessage = "";
     private string refreshStatus = "";
     private string updateDescription = "";
@@ -25,6 +26,8 @@ public sealed class UsageViewModel : INotifyPropertyChanged
     private Visibility tokenUsageVisibility = Visibility.Collapsed;
     private Visibility updateAvailableVisibility = Visibility.Collapsed;
     private Visibility resetExpirationVisibility = Visibility.Collapsed;
+    private Visibility resetVisibility = Visibility.Collapsed;
+    private Visibility creditVisibility = Visibility.Collapsed;
     private bool isCheckingForUpdates;
     private bool isUpToDate;
     private AvailableUpdateInfo? availableUpdate;
@@ -49,6 +52,7 @@ public sealed class UsageViewModel : INotifyPropertyChanged
     public string WeeklyReset { get => weeklyReset; private set => Set(ref weeklyReset, value); }
     public string ResetTitle { get => resetTitle; private set => Set(ref resetTitle, value); }
     public string ResetExpiration { get => resetExpiration; private set => Set(ref resetExpiration, value); }
+    public string CreditBalance { get => creditBalance; private set => Set(ref creditBalance, value); }
     public string ErrorMessage { get => errorMessage; private set => Set(ref errorMessage, value); }
     public string RefreshStatus { get => refreshStatus; private set => Set(ref refreshStatus, value); }
     public string UpdateDescription { get => updateDescription; private set => Set(ref updateDescription, value); }
@@ -78,6 +82,8 @@ public sealed class UsageViewModel : INotifyPropertyChanged
     public Visibility TokenUsageVisibility { get => tokenUsageVisibility; private set => Set(ref tokenUsageVisibility, value); }
     public Visibility UpdateAvailableVisibility { get => updateAvailableVisibility; private set => Set(ref updateAvailableVisibility, value); }
     public Visibility ResetExpirationVisibility { get => resetExpirationVisibility; private set => Set(ref resetExpirationVisibility, value); }
+    public Visibility ResetVisibility { get => resetVisibility; private set => Set(ref resetVisibility, value); }
+    public Visibility CreditVisibility { get => creditVisibility; private set => Set(ref creditVisibility, value); }
     public bool IsStale => lastSuccessfulRefresh is not null &&
         (lastRefreshFailed || DateTimeOffset.Now - lastSuccessfulRefresh >= TimeSpan.FromMinutes(2));
     public string WidgetRemaining => $"{WeeklyRemaining}{(IsStale ? " !" : "")}";
@@ -230,13 +236,20 @@ public sealed class UsageViewModel : INotifyPropertyChanged
         var limits = snapshot.CodexRateLimits;
         WeeklyRemaining = Remaining(limits.WeeklyWindow);
         WeeklyReset = ResetDetail(limits.WeeklyWindow?.ResetsAt, fullDate: true);
-        ResetTitle = snapshot.RateLimitResetCredits?.AvailableCount is long count && count > 0
-            ? count == 1 ? "1 reset available" : $"{count} resets available"
-            : "Open ChatGPT Usage";
-        ResetExpiration = snapshot.RateLimitResetCredits?.NextExpiration is long expiration
+        var count = snapshot.RateLimitResetCredits?.AvailableCount ?? 0;
+        var hasResets = count > 0;
+        ResetVisibility = hasResets ? Visibility.Visible : Visibility.Collapsed;
+        ResetTitle = hasResets ? (count == 1 ? "1 reset available" : $"{count} resets available") : "";
+        ResetExpiration = hasResets && snapshot.RateLimitResetCredits?.NextExpiration is long expiration
             ? $"Expires {FullDateTime(expiration)}"
             : "";
         ResetExpirationVisibility = string.IsNullOrEmpty(ResetExpiration) ? Visibility.Collapsed : Visibility.Visible;
+
+        CreditBalance = limits.Credits is { Unlimited: true } ? "Unlimited"
+            : limits.Credits is { HasCredits: true, Balance: { } balance }
+                ? CreditBalanceFormatter.Format(balance) ?? ""
+                : "";
+        CreditVisibility = string.IsNullOrEmpty(CreditBalance) ? Visibility.Collapsed : Visibility.Visible;
 
         AdditionalLimits.Clear();
         foreach (var limit in snapshot.AdditionalRateLimits)
