@@ -54,6 +54,13 @@ foreach (var url in new[] { "http://github.com/file", "https://github.com:444/fi
     Check(!UpdateInstaller.IsAllowedDownloadUri(new Uri(url)), "Accepted unsafe redirect");
 Console.WriteLine($"PASS: {checks} update checks");
 
+var culture = System.Globalization.CultureInfo.GetCultureInfo("en-US");
+Check(CreditBalanceFormatter.Format("60473.9179850000", culture) == "60,474", "Fractional credit balance did not round to a whole number");
+Check(CreditBalanceFormatter.Format("60473.001", culture) == "60,473", "Small fractional credit balance rounded up");
+Check(CreditBalanceFormatter.Format("0", culture) == "0", "Zero credit balance did not display");
+Check(CreditBalanceFormatter.Format("invalid", culture) is null, "Invalid credit balance was displayed");
+Console.WriteLine("PASS: 4 credit formatting checks");
+
 // Optional network integration check against the repository's actual public assets.
 if (args.Contains("--download-latest"))
 {

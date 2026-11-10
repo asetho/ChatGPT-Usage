@@ -103,25 +103,33 @@ struct UsageMenuView: View {
                 statusWarning
             }
 
-            Button(action: openUsageDashboard) {
-                HStack(spacing: 6) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(manageUsageTitle(snapshot))
-                        if let expiration = resetExpirationTitle(snapshot) {
-                            Text(expiration)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+            if let resetTitle = availableResetTitle(snapshot) {
+                Button(action: openUsageDashboard) {
+                    HStack(spacing: 6) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(resetTitle)
+                            if let expiration = resetExpirationTitle(snapshot) {
+                                Text(expiration)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
+                        LucideIcon("ExternalLink", size: 14)
+                            .foregroundStyle(.secondary)
+                        Spacer()
                     }
-                    LucideIcon("ExternalLink", size: 14)
-                        .foregroundStyle(.secondary)
-                    Spacer()
+                    .contentShape(Rectangle())
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
                 }
-                .contentShape(Rectangle())
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
+
+            if let creditBalance = availableCreditBalance(snapshot.codexRateLimits.credits) {
+                DetailRow(title: "Credits available", value: creditBalance)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 6)
+            }
 
             if !snapshot.additionalRateLimits.isEmpty || snapshot.accountUsage != nil {
                 Divider()
@@ -289,18 +297,16 @@ struct UsageMenuView: View {
         .padding(.vertical, 11)
     }
 
-    private func manageUsageTitle(_ snapshot: CodexUsageSnapshot) -> String {
-        if let count = snapshot.rateLimitResetCredits?.availableCount, count > 0 {
-            return count == 1 ? "1 reset available" : "\(count) resets available"
-        }
+    private func availableResetTitle(_ snapshot: CodexUsageSnapshot) -> String? {
+        guard let count = snapshot.rateLimitResetCredits?.availableCount, count > 0 else { return nil }
+        return count == 1 ? "1 reset available" : "\(count) resets available"
+    }
 
-        let limit = snapshot.codexRateLimits
-        guard let credits = limit.credits else { return "Open ChatGPT Usage" }
-        if credits.unlimited { return "Unlimited credits" }
-        if credits.hasCredits, let balance = credits.balance {
-            return "\(balance) credits available"
-        }
-        return "Manage resets & credits"
+    private func availableCreditBalance(_ credits: CreditsSnapshot?) -> String? {
+        guard let credits else { return nil }
+        if credits.unlimited { return "Unlimited" }
+        guard credits.hasCredits, let balance = credits.balance else { return nil }
+        return UsageFormatters.creditBalance(balance)
     }
 
     private func resetExpirationTitle(_ snapshot: CodexUsageSnapshot) -> String? {
