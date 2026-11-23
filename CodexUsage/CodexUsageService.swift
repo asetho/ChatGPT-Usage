@@ -226,7 +226,8 @@ private final class CodexUsageProbe: @unchecked Sendable {
             rateLimitsById: buckets,
             rateLimitResetCredits: limitsResponse.rateLimitResetCredits,
             accountUsage: result.2,
-            fetchedAt: Date()
+            fetchedAt: Date(),
+            ordinaryUsageAllowed: limitsResponse.ordinaryUsageAllowed
         )
     }
 

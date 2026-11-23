@@ -104,10 +104,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func updateStatusItem() {
         let percentage = UsageStore.shared.menuBarPercentage
+        let creditsMayBeUsed = UsageStore.shared.creditsMayBeUsed
         guard let button = statusItem?.button else { return }
 
         // Let AppKit style the title and template icon together on inactive menu bars.
-        button.title = percentage
+        button.title = creditsMayBeUsed ? "" : percentage
+        if creditsMayBeUsed {
+            let coin = NSTextAttachment()
+            coin.image = Self.creditWarningImage
+            coin.bounds = NSRect(x: 0, y: -2, width: 18, height: 18)
+            button.attributedTitle = NSAttributedString(attachment: coin)
+        }
         if let cell = button.cell {
             let bounds = NSRect(origin: .zero, size: NSSize(width: cell.cellSize.width, height: button.bounds.height))
             var contentBounds = cell.titleRect(forBounds: bounds)
@@ -119,6 +126,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         button.toolTip = UsageStore.shared.statusDescription
         button.setAccessibilityLabel(UsageStore.shared.statusDescription)
+    }
+
+    private static let creditWarningImage = NSImage(size: NSSize(width: 18, height: 18), flipped: false) { _ in
+        NSColor.labelColor.setStroke()
+        let face = NSBezierPath(ovalIn: NSRect(x: 0.9, y: 0.846, width: 9.864, height: 16.308))
+        face.lineWidth = 1.25
+        face.stroke()
+
+        // Rounded side-on rim scaled from the bundled coin SVG to the status bar.
+        let rim = NSBezierPath()
+        rim.move(to: NSPoint(x: 5.814, y: 17.154))
+        rim.line(to: NSPoint(x: 11.1, y: 17.154))
+        rim.curve(to: NSPoint(x: 16.14225, y: 9), controlPoint1: NSPoint(x: 13.875, y: 17.154),
+                  controlPoint2: NSPoint(x: 16.14225, y: 13.8))
+        rim.curve(to: NSPoint(x: 11.1, y: 0.846), controlPoint1: NSPoint(x: 16.14225, y: 4.2),
+                  controlPoint2: NSPoint(x: 13.875, y: 0.846))
+        rim.line(to: NSPoint(x: 5.814, y: 0.846))
+        rim.move(to: NSPoint(x: 10.386, y: 12.15))
+        rim.line(to: NSPoint(x: 15.675, y: 12.15))
+        rim.move(to: NSPoint(x: 15.675, y: 6.237))
+        rim.line(to: NSPoint(x: 10.566, y: 6.237))
+        rim.lineWidth = 1.25
+        rim.lineCapStyle = .round
+        rim.stroke()
+
+        NSColor.systemRed.setFill()
+        NSBezierPath(ovalIn: NSRect(x: 10.5, y: 0.5, width: 7.5, height: 7.5)).fill()
+        NSColor.white.setFill()
+        NSBezierPath(roundedRect: NSRect(x: 13.75, y: 3.7, width: 1, height: 2.8), xRadius: 0.5, yRadius: 0.5).fill()
+        NSBezierPath(ovalIn: NSRect(x: 13.75, y: 2, width: 1, height: 1)).fill()
+        return true
     }
 
     @objc private func handleStatusItemClick(_ sender: NSStatusBarButton) {

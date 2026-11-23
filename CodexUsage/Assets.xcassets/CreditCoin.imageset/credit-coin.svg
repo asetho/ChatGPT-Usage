@@ -1,0 +1,7 @@
+<!-- Rounded side-on coin adapted from the supplied coin.svg for legibility at 18 pixels. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000000" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M7.752 1.128h7.048c3.7 0 6.723 4.472 6.723 10.872s-3.023 10.872-6.723 10.872H7.752" />
+  <line x1="13.848" y1="7.8" x2="20.9" y2="7.8" />
+  <line x1="20.9" y1="15.684" x2="14.088" y2="15.684" />
+  <ellipse cx="7.776" cy="12" rx="6.576" ry="10.872" />
+</svg>

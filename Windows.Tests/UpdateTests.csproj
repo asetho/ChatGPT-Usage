@@ -7,6 +7,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../Windows/CreditBalanceFormatter.cs" Link="CreditBalanceFormatter.cs" />
+    <Compile Include="../Windows/CreditUseIndicator.cs" Link="CreditUseIndicator.cs" />
     <Compile Include="../Windows/UpdateCheckService.cs" Link="UpdateCheckService.cs" />
     <Compile Include="../Windows/UpdateInstaller.cs" Link="UpdateInstaller.cs" />
   </ItemGroup>

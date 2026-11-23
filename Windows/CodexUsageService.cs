@@ -144,7 +144,8 @@ internal static class CodexUsageService
             {
                 limit.FallbackLimitId = limitId;
             }
-            return new UsageSnapshot(rateLimits.RateLimits, limitsById, rateLimits.RateLimitResetCredits, accountUsage);
+            return new UsageSnapshot(rateLimits.RateLimits, limitsById, rateLimits.RateLimitResetCredits,
+                accountUsage, rateLimits.OrdinaryUsageAllowed);
         }
         catch (OperationCanceledException) when (timeout.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
         {
@@ -206,6 +207,7 @@ internal static class CodexUsageService
 
 internal sealed class RateLimitsResponse
 {
+    public bool? OrdinaryUsageAllowed { get; init; }
     public RateLimitSnapshot RateLimits { get; init; } = new();
     public Dictionary<string, RateLimitSnapshot>? RateLimitsByLimitId { get; init; }
     public RateLimitResetCreditsSummary? RateLimitResetCredits { get; init; }
@@ -287,11 +289,13 @@ internal sealed class UsageSnapshot(
     RateLimitSnapshot defaultRateLimits,
     Dictionary<string, RateLimitSnapshot> rateLimitsById,
     RateLimitResetCreditsSummary? rateLimitResetCredits,
-    AccountUsageResponse? accountUsage)
+    AccountUsageResponse? accountUsage,
+    bool? ordinaryUsageAllowed)
 {
     public RateLimitSnapshot CodexRateLimits => rateLimitsById.GetValueOrDefault("codex") ?? defaultRateLimits;
     public RateLimitResetCreditsSummary? RateLimitResetCredits => rateLimitResetCredits;
     public AccountUsageResponse? AccountUsage => accountUsage;
+    public bool? OrdinaryUsageAllowed => ordinaryUsageAllowed;
     public IEnumerable<RateLimitSnapshot> AdditionalRateLimits => rateLimitsById
         .Where(pair => pair.Key != "codex")
         .Select(pair => pair.Value)
