@@ -1,6 +1,7 @@
 import Foundation
 
 struct RateLimitsResponse: Decodable, Equatable {
+    let ordinaryUsageAllowed: Bool?
     let rateLimits: RateLimitSnapshot
     let rateLimitsByLimitId: [String: RateLimitSnapshot]?
     let rateLimitResetCredits: RateLimitResetCreditsSummary?
@@ -128,9 +129,20 @@ struct CodexUsageSnapshot: Equatable {
     let rateLimitResetCredits: RateLimitResetCreditsSummary?
     let accountUsage: AccountUsageResponse?
     let fetchedAt: Date
+    var ordinaryUsageAllowed: Bool? = nil
 
     var codexRateLimits: RateLimitSnapshot {
         rateLimitsById["codex"] ?? defaultRateLimits
+    }
+
+    var creditsMayBeUsed: Bool {
+        guard ordinaryUsageAllowed == false,
+              let credits = codexRateLimits.credits, credits.hasCredits, !credits.unlimited,
+              let rawBalance = credits.balance,
+              let balance = Decimal(string: rawBalance, locale: Locale(identifier: "en_US_POSIX")) else {
+            return false
+        }
+        return balance > 0
     }
 
     var additionalRateLimits: [RateLimitSnapshot] {

@@ -37,7 +37,12 @@ final class UsageStore: ObservableObject {
     var statusDescription: String {
         guard let remainingWeeklyPercent, let snapshot else { return "ChatGPT usage unavailable" }
         let freshness = isStale ? "Stale data. " : ""
-        return "\(freshness)ChatGPT weekly usage: \(remainingWeeklyPercent)% remaining. Last updated \(UsageFormatters.fullDateTime.string(from: snapshot.fetchedAt))."
+        let creditWarning = creditsMayBeUsed ? " Included usage unavailable; eligible requests may use credits." : ""
+        return "\(freshness)ChatGPT weekly usage: \(remainingWeeklyPercent)% remaining.\(creditWarning) Last updated \(UsageFormatters.fullDateTime.string(from: snapshot.fetchedAt))."
+    }
+
+    var creditsMayBeUsed: Bool {
+        !isStale && snapshot?.creditsMayBeUsed == true
     }
 
     var remainingWeeklyPercent: Int? {

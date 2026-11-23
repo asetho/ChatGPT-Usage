@@ -61,6 +61,16 @@ Check(CreditBalanceFormatter.Format("0", culture) == "0", "Zero credit balance d
 Check(CreditBalanceFormatter.Format("invalid", culture) is null, "Invalid credit balance was displayed");
 Console.WriteLine("PASS: 4 credit formatting checks");
 
+Check(!CreditUseIndicator.MayUseCredits(true, true, false, "12"), "Warning appeared while included usage was allowed");
+Check(!CreditUseIndicator.MayUseCredits(null, true, false, "12"), "Warning inferred from missing permission data");
+Check(CreditUseIndicator.MayUseCredits(false, true, false, "12.5"), "Missing warning when credits may be used");
+Check(!CreditUseIndicator.MayUseCredits(false, true, false, "0"), "Warning appeared with no credit balance");
+Check(!CreditUseIndicator.MayUseCredits(false, true, false, "-1"), "Warning appeared with negative balance");
+Check(!CreditUseIndicator.MayUseCredits(false, true, false, "invalid"), "Warning appeared with invalid balance");
+Check(!CreditUseIndicator.MayUseCredits(false, false, false, "12"), "Warning appeared without credits");
+Check(!CreditUseIndicator.MayUseCredits(false, true, true, "12"), "Warning appeared for unlimited credits");
+Console.WriteLine("PASS: 8 credit warning checks");
+
 // Optional network integration check against the repository's actual public assets.
 if (args.Contains("--download-latest"))
 {

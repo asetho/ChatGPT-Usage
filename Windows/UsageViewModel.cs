@@ -28,6 +28,7 @@ public sealed class UsageViewModel : INotifyPropertyChanged
     private Visibility resetExpirationVisibility = Visibility.Collapsed;
     private Visibility resetVisibility = Visibility.Collapsed;
     private Visibility creditVisibility = Visibility.Collapsed;
+    private bool creditsMayBeUsed;
     private bool isCheckingForUpdates;
     private bool isUpToDate;
     private AvailableUpdateInfo? availableUpdate;
@@ -84,11 +85,16 @@ public sealed class UsageViewModel : INotifyPropertyChanged
     public Visibility ResetExpirationVisibility { get => resetExpirationVisibility; private set => Set(ref resetExpirationVisibility, value); }
     public Visibility ResetVisibility { get => resetVisibility; private set => Set(ref resetVisibility, value); }
     public Visibility CreditVisibility { get => creditVisibility; private set => Set(ref creditVisibility, value); }
+    public Visibility CreditWarningVisibility => creditsMayBeUsed && !IsStale ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility WidgetRemainingVisibility => CreditWarningVisibility == Visibility.Visible
+        ? Visibility.Collapsed : Visibility.Visible;
     public bool IsStale => lastSuccessfulRefresh is not null &&
         (lastRefreshFailed || DateTimeOffset.Now - lastSuccessfulRefresh >= TimeSpan.FromMinutes(2));
     public string WidgetRemaining => $"{WeeklyRemaining}{(IsStale ? " !" : "")}";
     public string TrayText => $"ChatGPT weekly usage: {WeeklyRemaining} remaining{(IsStale ? " (stale)" : "")}";
-    public string WidgetToolTip => $"{TrayText}. {RefreshStatus}. Click to open usage. Drag to move.";
+    public string WidgetToolTip => $"{TrayText}." +
+        (CreditWarningVisibility == Visibility.Visible ? " Included usage unavailable; eligible requests may use credits." : "") +
+        $" {RefreshStatus}. Click to open usage. Drag to move.";
 
     public void UpdateFreshnessStatus()
     {
@@ -105,6 +111,8 @@ public sealed class UsageViewModel : INotifyPropertyChanged
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(WidgetRemaining)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(TrayText)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(WidgetToolTip)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CreditWarningVisibility)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(WidgetRemainingVisibility)));
     }
 
     public Task RefreshAsync() => RefreshAsync(showErrors: true);
@@ -234,6 +242,8 @@ public sealed class UsageViewModel : INotifyPropertyChanged
     private void ApplySnapshot(UsageSnapshot snapshot)
     {
         var limits = snapshot.CodexRateLimits;
+        creditsMayBeUsed = CreditUseIndicator.MayUseCredits(snapshot.OrdinaryUsageAllowed,
+            limits.Credits?.HasCredits == true, limits.Credits?.Unlimited == true, limits.Credits?.Balance);
         WeeklyRemaining = Remaining(limits.WeeklyWindow);
         WeeklyReset = ResetDetail(limits.WeeklyWindow?.ResetsAt, fullDate: true);
         var count = snapshot.RateLimitResetCredits?.AvailableCount ?? 0;

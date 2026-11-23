@@ -73,15 +73,36 @@ final class UsageStoreTests: XCTestCase {
         XCTAssertEqual(store.menuBarPercentage, "60% !")
     }
 
-    private func makeSnapshot(fetchedAt: Date = Date()) -> CodexUsageSnapshot {
+    func testCreditWarningDisappearsWhenUsageDataBecomesStale() async {
+        let snapshot = makeSnapshot(
+            ordinaryUsageAllowed: false,
+            credits: CreditsSnapshot(hasCredits: true, unlimited: false, balance: "12")
+        )
+        var shouldFail = false
+        let store = UsageStore {
+            if shouldFail { throw CodexUsageError.timedOut }
+            return snapshot
+        }
+
+        await store.refresh()?.value
+        XCTAssertTrue(store.creditsMayBeUsed)
+        shouldFail = true
+        await store.refresh()?.value
+        XCTAssertFalse(store.creditsMayBeUsed)
+        XCTAssertFalse(store.statusDescription.contains("may use credits"))
+    }
+
+    private func makeSnapshot(fetchedAt: Date = Date(), ordinaryUsageAllowed: Bool? = nil,
+                              credits: CreditsSnapshot? = nil) -> CodexUsageSnapshot {
         let limits = RateLimitSnapshot(
             limitId: "codex", limitName: nil,
             primary: RateLimitWindow(usedPercent: 40, windowDurationMins: 10_080, resetsAt: nil),
-            secondary: nil, credits: nil, individualLimit: nil, planType: "pro", rateLimitReachedType: nil
+            secondary: nil, credits: credits, individualLimit: nil, planType: "pro", rateLimitReachedType: nil
         )
         return CodexUsageSnapshot(
             defaultRateLimits: limits, rateLimitsById: ["codex": limits],
-            rateLimitResetCredits: nil, accountUsage: nil, fetchedAt: fetchedAt
+            rateLimitResetCredits: nil, accountUsage: nil, fetchedAt: fetchedAt,
+            ordinaryUsageAllowed: ordinaryUsageAllowed
         )
     }
 }
@@ -274,6 +295,7 @@ final class UsageModelsTests: XCTestCase {
     func testDecodesCurrentRateLimitsPayload() throws {
         let json = #"""
         {
+          "ordinaryUsageAllowed": true,
           "rateLimits": {
             "limitId": "codex",
             "limitName": null,
@@ -296,6 +318,7 @@ final class UsageModelsTests: XCTestCase {
 
         let response = try JSONDecoder().decode(RateLimitsResponse.self, from: json)
 
+        XCTAssertEqual(response.ordinaryUsageAllowed, true)
         XCTAssertNil(response.rateLimits.fiveHourWindow)
         XCTAssertEqual(response.rateLimits.weeklyWindow?.remainingPercent, 23)
         XCTAssertEqual(response.rateLimits.credits?.balance, "0")
@@ -316,6 +339,33 @@ final class UsageModelsTests: XCTestCase {
         XCTAssertEqual(UsageFormatters.creditBalance("60473.001", locale: locale), "60,473")
         XCTAssertEqual(UsageFormatters.creditBalance("0", locale: locale), "0")
         XCTAssertNil(UsageFormatters.creditBalance("invalid", locale: locale))
+    }
+
+    func testCreditWarningRequiresBackendDenialOfIncludedUsageAndPositiveBalance() {
+        func snapshot(_ ordinaryUsageAllowed: Bool?, balance: String?, usedPercent: Int = 100,
+                      hasCredits: Bool = true, unlimited: Bool = false) -> CodexUsageSnapshot {
+            let limits = RateLimitSnapshot(
+                limitId: "codex", limitName: nil,
+                primary: RateLimitWindow(usedPercent: usedPercent, windowDurationMins: 300, resetsAt: nil),
+                secondary: nil,
+                credits: CreditsSnapshot(hasCredits: hasCredits, unlimited: unlimited, balance: balance),
+                individualLimit: nil, planType: "pro", rateLimitReachedType: nil
+            )
+            return CodexUsageSnapshot(
+                defaultRateLimits: limits, rateLimitsById: ["codex": limits],
+                rateLimitResetCredits: nil, accountUsage: nil, fetchedAt: Date(),
+                ordinaryUsageAllowed: ordinaryUsageAllowed
+            )
+        }
+
+        XCTAssertFalse(snapshot(true, balance: "12").creditsMayBeUsed)
+        XCTAssertFalse(snapshot(nil, balance: "12").creditsMayBeUsed)
+        XCTAssertTrue(snapshot(false, balance: "12.5", usedPercent: 99).creditsMayBeUsed)
+        XCTAssertFalse(snapshot(false, balance: "0.0").creditsMayBeUsed)
+        XCTAssertFalse(snapshot(false, balance: "-1").creditsMayBeUsed)
+        XCTAssertFalse(snapshot(false, balance: "invalid").creditsMayBeUsed)
+        XCTAssertFalse(snapshot(false, balance: "12", hasCredits: false).creditsMayBeUsed)
+        XCTAssertFalse(snapshot(false, balance: "12", unlimited: true).creditsMayBeUsed)
     }
 
     func testNearTermResetUsesTimeEvenAcrossMidnight() {

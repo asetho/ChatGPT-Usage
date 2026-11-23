@@ -9,10 +9,9 @@ using Pen = System.Windows.Media.Pen;
 
 namespace ChatGPTUsage.Windows;
 
-public enum SymbolKind { Gauge, Settings, Refresh, ExternalLink, Help, Warning, LimitReached, Download, ChevronDown, ChevronRight, Check, GitHub }
+public enum SymbolKind { Gauge, CreditCoin, Settings, Refresh, ExternalLink, Help, Warning, LimitReached, Download, ChevronDown, ChevronRight, Check, GitHub }
 
-// Both apps consume the same bundled SVGs: Lucide plus our own usage gauge.
-// No SVG runtime or font dependency is needed.
+// Use bundled Lucide and custom SVGs without an SVG runtime or icon font.
 public sealed class SymbolIcon : Control
 {
     public static readonly DependencyProperty KindProperty = DependencyProperty.Register(
@@ -32,7 +31,8 @@ public sealed class SymbolIcon : Control
         if (Icons.TryGetValue(kind, out var cached)) return cached;
         var name = kind switch
         {
-            SymbolKind.Gauge => "usage-gauge", SymbolKind.Settings => "settings", SymbolKind.Refresh => "refresh-cw",
+            SymbolKind.Gauge => "usage-gauge", SymbolKind.CreditCoin => "credit-coin",
+            SymbolKind.Settings => "settings", SymbolKind.Refresh => "refresh-cw",
             SymbolKind.ExternalLink => "external-link", SymbolKind.Help => "circle-question-mark",
             SymbolKind.Warning => "triangle-alert", SymbolKind.LimitReached => "circle-alert",
             SymbolKind.Download => "circle-arrow-down", SymbolKind.ChevronDown => "chevron-down",
@@ -50,6 +50,7 @@ public sealed class SymbolIcon : Control
             {
                 "path" => Geometry.Parse(element.Attribute("d")!.Value),
                 "circle" => new EllipseGeometry(new Point(Number("cx"), Number("cy")), Number("r"), Number("r")),
+                "ellipse" => new EllipseGeometry(new Point(Number("cx"), Number("cy")), Number("rx"), Number("ry")),
                 "line" => new LineGeometry(new Point(Number("x1"), Number("y1")), new Point(Number("x2"), Number("y2"))),
                 _ => throw new InvalidOperationException($"Unsupported element in bundled icon: {name}")
             });
@@ -66,7 +67,8 @@ public sealed class SymbolIcon : Control
         var scale = Math.Min(ActualWidth, ActualHeight) / units;
         drawing.PushTransform(new TranslateTransform((ActualWidth - units * scale) / 2, (ActualHeight - units * scale) / 2));
         drawing.PushTransform(new ScaleTransform(scale, scale));
-        var pen = new Pen(Foreground, 2) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round, LineJoin = PenLineJoin.Round };
+        var pen = new Pen(Foreground, Kind == SymbolKind.CreditCoin ? 1.7 : 2)
+        { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round, LineJoin = PenLineJoin.Round };
         drawing.DrawGeometry(Kind == SymbolKind.GitHub ? Foreground : null,
             Kind == SymbolKind.GitHub ? null : pen, GetGeometry(Kind));
         drawing.Pop();
