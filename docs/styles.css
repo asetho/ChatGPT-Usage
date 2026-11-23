@@ -192,9 +192,9 @@ h1 span {
   filter:drop-shadow(0 16px 22px #0003)
 }
 .widget-preview {
-  position:absolute;
-  bottom:57px;
-  right:-24px;
+  width:max-content;
+  max-width:100%;
+  margin:18px 0 0 auto;
   background:#e9efe9;
   border:1px solid #cad4cc;
   padding:13px 16px;
@@ -419,9 +419,6 @@ h3 {
   .hero-art {
     padding:20px
   }
-  .widget-preview {
-    right:-10px
-  }
   .hero-actions {
     gap:18px
   }
@@ -489,8 +486,6 @@ h3 {
     width:290px
   }
   .widget-preview {
-    right:12px;
-    bottom:49px;
     padding:11px 13px
   }
   .widget-preview img {

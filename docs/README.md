@@ -10,7 +10,7 @@ Keep the Google site-verification meta tag in `index.html` so Search Console own
 remains verified. The sitemap contains the canonical homepage URL. Download links use
 GitHub's latest-release page so they remain current without a website release.
 
-The screenshots are illustrative 1.0.29 views with sample usage. Their editable
-source is `Artwork/Screenshots/demo-source.html` on `main`; the rendered PNGs are
-copied to this branch's `docs/assets`. Keep Mac signing and notarization status
-distinct from the unsigned Windows installer.
+The screenshots are illustrative 1.0.35 views with sample usage. Their editable
+source is `Artwork/Screenshots/demo-source.html` on this branch; the rendered PNGs
+are in `docs/assets`. Keep Mac signing and notarization status distinct from the
+unsigned Windows installer.
