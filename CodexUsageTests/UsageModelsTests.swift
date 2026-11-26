@@ -8,7 +8,7 @@ final class UpdateCheckServiceTests: XCTestCase {
             #"{"tag_name":"v1.0.19","html_url":"https://github.com/asetho/ChatGPT-Usage/releases/tag/v1.0.19"}"#.utf8
         )
 
-        let update = UpdateCheckService.availableUpdate(from: data, currentVersion: "1.0.18")
+        let update = try UpdateCheckService.availableUpdate(from: data, currentVersion: "1.0.18")
 
         XCTAssertEqual(update?.version, "1.0.19")
         XCTAssertEqual(
@@ -25,8 +25,8 @@ final class UpdateCheckServiceTests: XCTestCase {
             #"{"tag_name":"v1.0.17","html_url":"https://github.com/asetho/ChatGPT-Usage/releases/tag/v1.0.17"}"#.utf8
         )
 
-        XCTAssertNil(UpdateCheckService.availableUpdate(from: current, currentVersion: "1.0.18"))
-        XCTAssertNil(UpdateCheckService.availableUpdate(from: older, currentVersion: "1.0.18"))
+        XCTAssertNil(try UpdateCheckService.availableUpdate(from: current, currentVersion: "1.0.18"))
+        XCTAssertNil(try UpdateCheckService.availableUpdate(from: older, currentVersion: "1.0.18"))
     }
 
     func testRejectsUnexpectedReleaseHost() throws {
@@ -34,12 +34,42 @@ final class UpdateCheckServiceTests: XCTestCase {
             #"{"tag_name":"v1.0.19","html_url":"https://example.com/download"}"#.utf8
         )
 
-        XCTAssertNil(UpdateCheckService.availableUpdate(from: data, currentVersion: "1.0.18"))
+        XCTAssertThrowsError(try UpdateCheckService.availableUpdate(from: data, currentVersion: "1.0.18"))
     }
 }
 
 @MainActor
 final class UsageStoreTests: XCTestCase {
+    func testManualUpdateCheckDistinguishesMalformedCurrentAndNewerReleases() async {
+        func release(_ tag: String) -> Data {
+            Data("""
+                {"tag_name":"\(tag)","html_url":"https://github.com/asetho/ChatGPT-Usage/releases/tag/\(tag)"}
+                """.utf8)
+        }
+
+        var response = Data("{".utf8)
+        let store = UsageStore(fetchUpdate: { _ in
+            try UpdateCheckService.availableUpdate(from: response, currentVersion: "1.0.18")
+        })
+
+        await store.checkForUpdatesManually()?.value
+        XCTAssertFalse(store.isUpToDate)
+        XCTAssertNil(store.availableUpdate)
+        XCTAssertEqual(store.updateCheckStatus, "Unable to check for updates right now.")
+
+        response = release("v1.0.18")
+        await store.checkForUpdatesManually()?.value
+        XCTAssertTrue(store.isUpToDate)
+        XCTAssertNil(store.availableUpdate)
+        XCTAssertNil(store.updateCheckStatus)
+
+        response = release("v1.0.19")
+        await store.checkForUpdatesManually()?.value
+        XCTAssertFalse(store.isUpToDate)
+        XCTAssertEqual(store.availableUpdate?.version, "1.0.19")
+        XCTAssertEqual(store.updateCheckStatus, "Version 1.0.19 is available.")
+    }
+
     func testFailureKeepsLastQuotaAndRecoveryClearsStaleState() async throws {
         let snapshot = makeSnapshot()
         var shouldFail = false

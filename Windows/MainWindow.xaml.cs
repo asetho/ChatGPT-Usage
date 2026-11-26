@@ -168,13 +168,16 @@ public partial class MainWindow : Window
 
     private void Settings_Click(object sender, RoutedEventArgs e)
     {
+        var settings = new SettingsWindow((UsageViewModel)DataContext) { Owner = this };
         isShowingSettings = true;
         try
         {
-            new SettingsWindow((UsageViewModel)DataContext) { Owner = this }.ShowDialog();
+            Opacity = 0;
+            settings.ShowDialog();
         }
         finally
         {
+            Opacity = 1;
             isShowingSettings = false;
         }
     }

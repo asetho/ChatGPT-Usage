@@ -54,8 +54,36 @@ public sealed class UsageViewModel : INotifyPropertyChanged
     public string ResetTitle { get => resetTitle; private set => Set(ref resetTitle, value); }
     public string ResetExpiration { get => resetExpiration; private set => Set(ref resetExpiration, value); }
     public string CreditBalance { get => creditBalance; private set => Set(ref creditBalance, value); }
-    public string ErrorMessage { get => errorMessage; private set => Set(ref errorMessage, value); }
-    public string RefreshStatus { get => refreshStatus; private set => Set(ref refreshStatus, value); }
+    public string ErrorMessage
+    {
+        get => errorMessage;
+        private set
+        {
+            Set(ref errorMessage, value);
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ErrorBannerMessage)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ErrorBannerVisibility)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HeaderFreshnessVisibility)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HeaderStaleVisibility)));
+        }
+    }
+    public string RefreshStatus
+    {
+        get => refreshStatus;
+        private set
+        {
+            Set(ref refreshStatus, value);
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ErrorBannerMessage)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HeaderFreshnessVisibility)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HeaderStaleVisibility)));
+        }
+    }
+    public string ErrorBannerMessage => string.IsNullOrEmpty(ErrorMessage) ? ""
+        : lastSuccessfulRefresh is null ? ErrorMessage : $"{RefreshStatus}. {ErrorMessage}";
+    public Visibility ErrorBannerVisibility => string.IsNullOrEmpty(ErrorMessage) ? Visibility.Collapsed : Visibility.Visible;
+    public Visibility HeaderFreshnessVisibility => string.IsNullOrEmpty(ErrorMessage) && !string.IsNullOrEmpty(RefreshStatus)
+        ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility HeaderStaleVisibility => HeaderFreshnessVisibility == Visibility.Visible && IsStale
+        ? Visibility.Visible : Visibility.Collapsed;
     public string UpdateDescription { get => updateDescription; private set => Set(ref updateDescription, value); }
     public string UpdateCheckStatus
     {
@@ -113,6 +141,7 @@ public sealed class UsageViewModel : INotifyPropertyChanged
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(WidgetToolTip)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CreditWarningVisibility)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(WidgetRemainingVisibility)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HeaderStaleVisibility)));
     }
 
     public Task RefreshAsync() => RefreshAsync(showErrors: true);
@@ -228,7 +257,7 @@ public sealed class UsageViewModel : INotifyPropertyChanged
                 ? "Refresh timed out. It will retry automatically."
                 : error.Message;
             ErrorMessage = lastSuccessfulRefresh is not null
-                ? showErrors ? $"Showing the last update. {detail}" : "Showing the last update. Retrying automatically."
+                ? showErrors ? detail : "Retrying automatically."
                 : detail;
             if (lastSuccessfulRefresh is null) RefreshStatus = "Unavailable";
         }

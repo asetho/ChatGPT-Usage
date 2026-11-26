@@ -35,23 +35,21 @@
                 <TextBlock Text="{Binding UpdateInstallError}" Visibility="{Binding UpdateInstallErrorVisibility}"
                            Foreground="#E9B267" TextWrapping="Wrap" FontSize="12" Margin="0,0,0,12" />
 
-                <Button Click="OpenChatGPT_Click" HorizontalAlignment="Left" Padding="0,3" Margin="0,0,0,6"
-                        Background="Transparent" BorderThickness="0" Foreground="#E6E8EE"
-                        ToolTip="Open the ChatGPT app or chatgpt.com" AutomationProperties.Name="Open ChatGPT">
-                    <StackPanel Orientation="Horizontal">
-                        <local:SymbolIcon Kind="ExternalLink" Width="14" Height="14" Foreground="#E6E8EE" Margin="0,0,5,0" />
-                        <TextBlock Text="Open ChatGPT" FontSize="12" />
-                    </StackPanel>
-                </Button>
-                <Separator Background="#414650" />
-                <Grid Margin="0,10,0,0">
+                <Separator Background="#414650" Margin="0,0,0,10" />
+                <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <TextBlock Text="{Binding RefreshStatus}" Foreground="#858B96" FontSize="11"
-                               VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding RefreshStatus}" Margin="0,0,8,0" />
+                    <Button Click="OpenChatGPT_Click" HorizontalAlignment="Left" Padding="0,3"
+                            Background="Transparent" BorderThickness="0" Foreground="#E6E8EE"
+                            ToolTip="Open the ChatGPT app or chatgpt.com" AutomationProperties.Name="Open ChatGPT">
+                        <StackPanel Orientation="Horizontal">
+                            <local:SymbolIcon Kind="ExternalLink" Width="14" Height="14" Foreground="#E6E8EE" Margin="0,0,5,0" />
+                            <TextBlock Text="Open ChatGPT" FontSize="12" />
+                        </StackPanel>
+                    </Button>
                     <Button Grid.Column="1" Click="Refresh_Click" Padding="0,3" Background="Transparent" BorderThickness="0" Foreground="#E6E8EE"
                             ToolTip="Refresh usage" AutomationProperties.Name="Refresh">
                         <StackPanel Orientation="Horizontal">
@@ -69,12 +67,40 @@
                     <Grid Margin="0,0,0,14">
                         <StackPanel Orientation="Horizontal">
                             <local:SymbolIcon Kind="Gauge" Width="24" Height="24" Margin="0,0,10,0" Foreground="#AEB4BE" />
-                            <TextBlock Text="Usage remaining" FontSize="18" FontWeight="SemiBold" Foreground="#F0F1F4" VerticalAlignment="Center" />
+                            <StackPanel>
+                                <TextBlock Text="Usage remaining" FontSize="18" FontWeight="SemiBold" Foreground="#F0F1F4" />
+                                <StackPanel Orientation="Horizontal" Visibility="{Binding HeaderFreshnessVisibility}" Margin="0,2,0,0">
+                                    <local:SymbolIcon Kind="Warning" Width="12" Height="12" Foreground="#FFB86C"
+                                                      Visibility="{Binding HeaderStaleVisibility}" Margin="0,0,4,0" />
+                                    <TextBlock Text="{Binding RefreshStatus}" FontSize="12" ToolTip="{Binding RefreshStatus}">
+                                        <TextBlock.Style>
+                                            <Style TargetType="{x:Type TextBlock}">
+                                                <Setter Property="Foreground" Value="#858B96" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsStale}" Value="True">
+                                                        <Setter Property="Foreground" Value="#FFB86C" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </StackPanel>
+                            </StackPanel>
                         </StackPanel>
                         <Button Click="Settings_Click" ToolTip="Settings" AutomationProperties.Name="Settings"
-                                HorizontalAlignment="Right" Padding="5,1" Background="Transparent" BorderThickness="0" Foreground="#B4B8C0">
+                                HorizontalAlignment="Right" VerticalAlignment="Top" Padding="5,1" Background="Transparent" BorderThickness="0" Foreground="#B4B8C0">
                             <local:SymbolIcon Kind="Settings" Width="18" Height="18" Foreground="#B4B8C0" />
                         </Button>
+                    </Grid>
+
+                    <Grid Visibility="{Binding ErrorBannerVisibility}" Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <local:SymbolIcon Kind="Warning" Width="14" Height="14" Foreground="#FFB86C" Margin="0,2,8,0" />
+                        <TextBlock Grid.Column="1" Text="{Binding ErrorBannerMessage}" Foreground="#FFB86C"
+                                   FontSize="13" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
                     </Grid>
 
                     <Grid Margin="0,0,0,12">
@@ -188,23 +214,6 @@
                         </ItemsControl>
                     </Expander>
 
-                    <TextBlock Text="{Binding ErrorMessage}" Foreground="#FFB86C" TextWrapping="Wrap">
-                        <TextBlock.Style>
-                            <Style TargetType="{x:Type TextBlock}">
-                                <Setter Property="Margin" Value="0,12,0,0" />
-                                <Style.Triggers>
-                                    <Trigger Property="Text" Value="">
-                                        <Setter Property="Visibility" Value="Collapsed" />
-                                        <Setter Property="Margin" Value="0" />
-                                    </Trigger>
-                                    <Trigger Property="Text" Value="{x:Null}">
-                                        <Setter Property="Visibility" Value="Collapsed" />
-                                        <Setter Property="Margin" Value="0" />
-                                    </Trigger>
-                                </Style.Triggers>
-                            </Style>
-                        </TextBlock.Style>
-                    </TextBlock>
                 </StackPanel>
             </ScrollViewer>
         </DockPanel>
