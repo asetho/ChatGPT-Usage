@@ -51,18 +51,18 @@ enum UpdateCheckService {
             throw URLError(.badServerResponse)
         }
 
-        return availableUpdate(from: data, currentVersion: currentVersion)
+        return try availableUpdate(from: data, currentVersion: currentVersion)
     }
 
-    static func availableUpdate(from data: Data, currentVersion: String) -> AvailableUpdate? {
-        guard let release = try? JSONDecoder().decode(GitHubRelease.self, from: data),
-              let latestVersion = SemanticVersion(release.tagName),
+    static func availableUpdate(from data: Data, currentVersion: String) throws -> AvailableUpdate? {
+        let release = try JSONDecoder().decode(GitHubRelease.self, from: data)
+        guard release.draft != true, release.prerelease != true else { return nil }
+        guard let latestVersion = SemanticVersion(release.tagName),
               let installedVersion = SemanticVersion(currentVersion),
-              latestVersion > installedVersion,
-              release.draft != true, release.prerelease != true,
               isReleaseURL(release.htmlURL, path: "/asetho/ChatGPT-Usage/releases/tag/\(release.tagName)") else {
-            return nil
+            throw URLError(.cannotParseResponse)
         }
+        guard latestVersion > installedVersion else { return nil }
 
         let name = "ChatGPTUsage-\(latestVersion).dmg"
         let package = package(from: release.assets ?? [], name: name, tag: release.tagName)

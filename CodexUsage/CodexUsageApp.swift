@@ -80,7 +80,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         button.imageHugsTitle = true
 
         let controller = NSHostingController(
-            rootView: UsageMenuView().environmentObject(UsageStore.shared)
+            rootView: UsageMenuView(store: UsageStore.shared)
         )
         controller.sizingOptions = [.preferredContentSize]
         popover.contentViewController = controller
@@ -174,9 +174,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func showPopover(from button: NSStatusBarButton) {
+        if let controller = popover.contentViewController as? NSHostingController<UsageMenuView> {
+            let pointer = NSEvent.mouseLocation
+            let screen = button.window?.screen
+                ?? NSScreen.screens.first(where: { $0.frame.contains(pointer) })
+                ?? NSScreen.main
+            let height = usageMenuHeightLimit(on: screen)
+            if controller.rootView.maximumHeight != height {
+                controller.rootView.maximumHeight = height
+            }
+        }
         popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         NSApp.activate(ignoringOtherApps: true)
         popover.contentViewController?.view.window?.makeKey()
+    }
+
+    private func usageMenuHeightLimit(on screen: NSScreen?) -> CGFloat? {
+        // Leave room for the popover arrow and space at the bottom of the display.
+        screen.map { max(0, $0.visibleFrame.height - 24) }
     }
 
     static func openChatGPT() {
@@ -212,7 +227,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 #if DEBUG
     private func showPreviewWindow() {
         NSApp.setActivationPolicy(.regular)
-        let rootView = UsageMenuView().environmentObject(UsageStore.shared)
+        let rootView = UsageMenuView(store: UsageStore.shared, maximumHeight: usageMenuHeightLimit(on: NSScreen.main))
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 280, height: 420),
             styleMask: [.titled, .closable],

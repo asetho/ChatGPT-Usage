@@ -2,7 +2,8 @@ import AppKit
 import SwiftUI
 
 struct UsageMenuView: View {
-    @EnvironmentObject private var store: UsageStore
+    @ObservedObject var store: UsageStore
+    var maximumHeight: CGFloat? = nil
     @ObservedObject private var settings = AppSettings.shared
     @State private var isShowingSettings = false
     @State private var isAdditionalLimitsExpanded = false
@@ -16,17 +17,17 @@ struct UsageMenuView: View {
 
             Divider()
 
+            if let error = store.errorMessage, let snapshot = store.snapshot {
+                errorBanner(error, fetchedAt: snapshot.fetchedAt)
+                Divider()
+            }
+
             if let snapshot = store.snapshot {
                 usageContent(snapshot)
             } else if store.isRefreshing {
                 loadingContent
             } else {
                 unavailableContent
-            }
-
-            if let error = store.errorMessage, store.snapshot != nil {
-                Divider()
-                errorBanner(error)
             }
 
             if let update = store.availableUpdate {
@@ -36,8 +37,10 @@ struct UsageMenuView: View {
 
             Divider()
             footer
+                .fixedSize(horizontal: false, vertical: true)
         }
         .frame(width: 280)
+        .frame(maxHeight: maximumHeight, alignment: .top)
         .background {
             ZStack {
                 ActiveDarkGlassBackground()
@@ -58,8 +61,25 @@ struct UsageMenuView: View {
                 .font(.system(size: 18, weight: .medium))
                 .foregroundStyle(.secondary)
 
-            Text("Usage remaining")
-                .font(.system(size: 16, weight: .semibold))
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Usage remaining")
+                    .font(.system(size: 16, weight: .semibold))
+
+                if store.errorMessage == nil, let fetchedAt = store.snapshot?.fetchedAt {
+                    TimelineView(.periodic(from: .now, by: 30)) { context in
+                        HStack(spacing: 3) {
+                            if store.isStale {
+                                LucideIcon("Warning", size: 12)
+                            }
+                            Text("\(store.isStale ? "Stale · updated" : "Updated") \(UsageFormatters.updateAgeLabel(fetchedAt, now: context.date))")
+                        }
+                        .font(.caption)
+                        .foregroundStyle(store.isStale ? .orange : .secondary)
+                        .lineLimit(1)
+                        .help("Last successful update: \(UsageFormatters.fullDateTime.string(from: fetchedAt))")
+                    }
+                }
+            }
 
             Spacer()
 
@@ -96,11 +116,13 @@ struct UsageMenuView: View {
                 )
             }
             .padding(.horizontal, 16)
-            .padding(.top, 14)
+            .padding(.top, 6)
             .padding(.bottom, 6)
 
-            if snapshot.codexRateLimits.rateLimitReachedType != nil {
-                statusWarning
+            if store.creditsMayBeUsed {
+                statusWarning(UsageStore.creditUseWarning)
+            } else if snapshot.codexRateLimits.rateLimitReachedType != nil {
+                statusWarning("A usage limit has been reached.")
             }
 
             if let resetTitle = availableResetTitle(snapshot) {
@@ -135,12 +157,16 @@ struct UsageMenuView: View {
                 Divider()
 
                 VStack(spacing: 8) {
-                    if !snapshot.additionalRateLimits.isEmpty {
+                    let additionalLimits = snapshot.additionalRateLimits
+                    if !additionalLimits.isEmpty {
                         ExpandableSection("Additional limits", isExpanded: $isAdditionalLimitsExpanded) {
-                            VStack(spacing: 8) {
-                                ForEach(snapshot.additionalRateLimits) { limit in
-                                    AdditionalLimitView(limit: limit)
+                            ViewThatFits(in: .vertical) {
+                                additionalLimitsList(additionalLimits)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                ScrollView {
+                                    additionalLimitsList(additionalLimits)
                                 }
+                                .accessibilityLabel("Additional limits")
                             }
                         }
                     }
@@ -155,10 +181,19 @@ struct UsageMenuView: View {
                                 }
                             }
                         }
+                        .fixedSize(horizontal: false, vertical: true)
                     }
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 11)
+            }
+        }
+    }
+
+    private func additionalLimitsList(_ limits: [RateLimitSnapshot]) -> some View {
+        VStack(spacing: 8) {
+            ForEach(limits) { limit in
+                AdditionalLimitView(limit: limit)
             }
         }
     }
@@ -196,8 +231,12 @@ struct UsageMenuView: View {
         .padding(16)
     }
 
-    private var statusWarning: some View {
-        Label { Text("A usage limit has been reached.") } icon: { LucideIcon("LimitReached") }
+    private func statusWarning(_ message: String) -> some View {
+        Label {
+            Text(message).fixedSize(horizontal: false, vertical: true)
+        } icon: {
+            LucideIcon("LimitReached")
+        }
             .font(.callout)
             .foregroundStyle(.orange)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -205,14 +244,16 @@ struct UsageMenuView: View {
             .padding(.bottom, 8)
     }
 
-    private func errorBanner(_ message: String) -> some View {
+    private func errorBanner(_ message: String, fetchedAt: Date) -> some View {
         HStack(alignment: .top, spacing: 8) {
             LucideIcon("Warning", size: 14)
                 .foregroundStyle(.orange)
-            Text("Showing the last update. \(message)")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            TimelineView(.periodic(from: .now, by: 30)) { context in
+                Text("Stale · updated \(UsageFormatters.updateAgeLabel(fetchedAt, now: context.date)). \(message)")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
         .padding(12)
     }
@@ -256,26 +297,11 @@ struct UsageMenuView: View {
                 Text(error).font(.caption).foregroundStyle(.orange)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            Button(action: AppDelegate.openChatGPT) {
-                Label { Text("Open ChatGPT") } icon: { LucideIcon("ExternalLink", size: 12) }
-            }
-            .buttonStyle(.plain)
-            .help("Open the ChatGPT app or chatgpt.com")
-
             HStack(spacing: 12) {
-                if let fetchedAt = store.snapshot?.fetchedAt {
-                    TimelineView(.periodic(from: .now, by: 30)) { context in
-                        HStack(spacing: 3) {
-                            if store.isStale {
-                                LucideIcon("Warning", size: 12)
-                            }
-                            Text("\(store.isStale ? "Stale · updated" : "Updated") \(UsageFormatters.updateAgeLabel(fetchedAt, now: context.date))")
-                        }
-                        .foregroundStyle(store.isStale ? .orange : .secondary)
-                        .lineLimit(1)
-                        .help("Last successful update: \(UsageFormatters.fullDateTime.string(from: fetchedAt))")
-                    }
+                Button(action: AppDelegate.openChatGPT) {
+                    Label { Text("Open ChatGPT") } icon: { LucideIcon("ExternalLink", size: 12) }
                 }
+                .help("Open the ChatGPT app or chatgpt.com")
 
                 Spacer(minLength: 0)
 
@@ -640,6 +666,10 @@ private struct UsageWindowRow: View {
                 Text("Resets \(UsageFormatters.fullResetLabel(resetsAt))")
                     .font(.caption)
                     .monospacedDigit()
+                    .foregroundStyle(.secondary)
+            } else if showsFullResetDate, window == nil {
+                Text("Usage unavailable")
+                    .font(.caption)
                     .foregroundStyle(.secondary)
             }
         }

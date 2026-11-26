@@ -4,6 +4,7 @@ import Foundation
 @MainActor
 final class UsageStore: ObservableObject {
     static let shared = UsageStore()
+    static let creditUseWarning = "Included usage is unavailable. Eligible requests may use credits."
 
     @Published private(set) var snapshot: CodexUsageSnapshot?
     @Published private(set) var isRefreshing = false
@@ -19,10 +20,17 @@ final class UsageStore: ObservableObject {
     private var refreshLoop: Task<Void, Never>?
     private var updateCheckLoop: Task<Void, Never>?
     private let fetchSnapshot: @MainActor () async throws -> CodexUsageSnapshot
+    private let fetchUpdate: @MainActor (String) async throws -> AvailableUpdate?
 
     private static let updateCheckIntervalNanoseconds: UInt64 = 12 * 60 * 60 * 1_000_000_000
 
-    init(fetchSnapshot: (@MainActor () async throws -> CodexUsageSnapshot)? = nil) {
+    init(
+        fetchUpdate: (@MainActor (String) async throws -> AvailableUpdate?)? = nil,
+        fetchSnapshot: (@MainActor () async throws -> CodexUsageSnapshot)? = nil
+    ) {
+        self.fetchUpdate = fetchUpdate ?? { currentVersion in
+            try await UpdateCheckService.fetchAvailableUpdate(currentVersion: currentVersion)
+        }
         self.fetchSnapshot = fetchSnapshot ?? {
             try await CodexUsageService.fetch(executablePath: AppSettings.shared.codexExecutablePath)
         }
@@ -37,7 +45,7 @@ final class UsageStore: ObservableObject {
     var statusDescription: String {
         guard let remainingWeeklyPercent, let snapshot else { return "ChatGPT usage unavailable" }
         let freshness = isStale ? "Stale data. " : ""
-        let creditWarning = creditsMayBeUsed ? " Included usage unavailable; eligible requests may use credits." : ""
+        let creditWarning = creditsMayBeUsed ? " \(Self.creditUseWarning)" : ""
         return "\(freshness)ChatGPT weekly usage: \(remainingWeeklyPercent)% remaining.\(creditWarning) Last updated \(UsageFormatters.fullDateTime.string(from: snapshot.fetchedAt))."
     }
 
@@ -94,11 +102,12 @@ final class UsageStore: ObservableObject {
         }
     }
 
-    func checkForUpdatesManually() {
-        guard !isCheckingForUpdates else { return }
+    @discardableResult
+    func checkForUpdatesManually() -> Task<Void, Never>? {
+        guard !isCheckingForUpdates else { return nil }
         isUpToDate = false
         updateCheckStatus = nil
-        Task { [weak self] in
+        return Task { [weak self] in
             await self?.checkForUpdates(isManual: true)
         }
     }
@@ -159,9 +168,7 @@ final class UsageStore: ObservableObject {
         ) as? String ?? "0.0.0")
 
         do {
-            let update = try await UpdateCheckService.fetchAvailableUpdate(
-                currentVersion: installedVersion
-            )
+            let update = try await fetchUpdate(installedVersion)
             guard !Task.isCancelled, !isInstallingUpdate else { return }
             availableUpdate = update
             if isManual {

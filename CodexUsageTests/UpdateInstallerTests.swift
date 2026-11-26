@@ -25,15 +25,15 @@ final class UpdateInstallerTests: XCTestCase {
     }
 
     func testOffersInstallerOnlyForCompleteMatchingAssets() throws {
-        let update = UpdateCheckService.availableUpdate(from: try release(), currentVersion: "1.0.24")
+        let update = try UpdateCheckService.availableUpdate(from: release(), currentVersion: "1.0.24")
         XCTAssertEqual(update?.package?.installer.name, "ChatGPTUsage-1.0.25.dmg")
         XCTAssertEqual(update?.package?.installer.sha256, digest)
         XCTAssertEqual(update?.package?.checksum.name, "ChatGPTUsage-1.0.25.dmg.sha256")
     }
 
     func testMissingChecksumKeepsManualReleaseLink() throws {
-        let update = UpdateCheckService.availableUpdate(
-            from: try release(assets: [asset("ChatGPTUsage-1.0.25.dmg")]), currentVersion: "1.0.24")
+        let update = try UpdateCheckService.availableUpdate(
+            from: release(assets: [asset("ChatGPTUsage-1.0.25.dmg")]), currentVersion: "1.0.24")
         XCTAssertNotNil(update)
         XCTAssertNil(update?.package)
     }
@@ -49,22 +49,30 @@ final class UpdateInstallerTests: XCTestCase {
         ]
         for overrides in invalid {
             let data = try release(assets: [asset("ChatGPTUsage-1.0.25.dmg", overrides: overrides), asset("ChatGPTUsage-1.0.25.dmg.sha256")])
-            XCTAssertNil(UpdateCheckService.availableUpdate(from: data, currentVersion: "1.0.24")?.package, "\(overrides)")
+            XCTAssertNil(try UpdateCheckService.availableUpdate(from: data, currentVersion: "1.0.24")?.package, "\(overrides)")
         }
     }
 
     func testRejectsDuplicateAssets() throws {
         let data = try release(assets: [asset("ChatGPTUsage-1.0.25.dmg"), asset("ChatGPTUsage-1.0.25.dmg"), asset("ChatGPTUsage-1.0.25.dmg.sha256")])
-        XCTAssertNil(UpdateCheckService.availableUpdate(from: data, currentVersion: "1.0.24")?.package)
+        XCTAssertNil(try UpdateCheckService.availableUpdate(from: data, currentVersion: "1.0.24")?.package)
     }
 
-    func testRejectsOtherRepositoriesDraftsAndPrereleases() throws {
+    func testRejectsInvalidReleaseMetadata() throws {
         for overrides: [String: Any] in [
             ["html_url": "https://github.com/other/repo/releases/tag/v1.0.25"],
             ["html_url": "https://github.com:444/asetho/ChatGPT-Usage/releases/tag/v1.0.25"],
-            ["draft": true], ["prerelease": true], ["tag_name": "v+1.0.25"]
+            ["tag_name": "v+1.0.25"]
         ] {
-            XCTAssertNil(UpdateCheckService.availableUpdate(from: try release(overrides: overrides), currentVersion: "1.0.24"))
+            let data = try release(overrides: overrides)
+            XCTAssertThrowsError(try UpdateCheckService.availableUpdate(from: data, currentVersion: "1.0.24"))
+        }
+    }
+
+    func testIgnoresDraftsAndPrereleases() throws {
+        for overrides: [String: Any] in [["draft": true], ["prerelease": true]] {
+            let data = try release(overrides: overrides)
+            XCTAssertNil(try UpdateCheckService.availableUpdate(from: data, currentVersion: "1.0.24"))
         }
     }
 
