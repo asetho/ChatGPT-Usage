@@ -24,17 +24,17 @@
             <TextBlock Grid.Column="1" Text="{Binding WidgetRemaining}" Visibility="{Binding WidgetRemainingVisibility}"
                        Margin="7,0,0,0" FontSize="18" FontWeight="SemiBold"
                        Foreground="White" HorizontalAlignment="Left" VerticalAlignment="Center" />
-            <Grid Grid.Column="2" Width="21" Height="21" Margin="4,0,0,0"
+            <Grid Grid.Column="2" Width="17" Height="17" Margin="4,0,0,0"
                   Visibility="{Binding CreditWarningVisibility}"
                   ToolTip="Included usage unavailable; eligible requests may use credits."
                   AutomationProperties.Name="Credits may be used">
-                <local:SymbolIcon Kind="CreditCoin" Width="18" Height="18" Foreground="#D7DEE7"
+                <local:SymbolIcon Kind="CreditCoin" Width="14" Height="14" Foreground="#D7DEE7"
                                   HorizontalAlignment="Left" VerticalAlignment="Bottom" />
-                <Border Width="8" Height="8" CornerRadius="4" Background="#E5484D"
+                <Border Width="6" Height="6" CornerRadius="3" Background="#E5484D"
                         HorizontalAlignment="Right" VerticalAlignment="Bottom">
-                    <Canvas Width="8" Height="8">
-                        <Rectangle Canvas.Left="3.5" Canvas.Top="1.5" Width="1" Height="3" RadiusX="0.5" RadiusY="0.5" Fill="White" />
-                        <Ellipse Canvas.Left="3.5" Canvas.Top="5.3" Width="1" Height="1" Fill="White" />
+                    <Canvas Width="6" Height="6">
+                        <Rectangle Canvas.Left="2.6" Canvas.Top="1.1" Width="0.8" Height="2.2" RadiusX="0.4" RadiusY="0.4" Fill="White" />
+                        <Ellipse Canvas.Left="2.6" Canvas.Top="4" Width="0.8" Height="0.8" Fill="White" />
                     </Canvas>
                 </Border>
             </Grid>
