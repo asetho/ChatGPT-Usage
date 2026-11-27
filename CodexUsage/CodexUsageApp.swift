@@ -112,7 +112,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if creditsMayBeUsed {
             let coin = NSTextAttachment()
             coin.image = Self.creditWarningImage
-            coin.bounds = NSRect(x: 0, y: 0, width: 14, height: 14)
+            coin.bounds = NSRect(x: 0, y: -3, width: 14, height: 14)
             button.attributedTitle = NSAttributedString(attachment: coin)
         }
         if let cell = button.cell {
